@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Reddit Frontend</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="">
+    <div class="mx-auto container">
+      <h1 class="text-4xl font-bold my-8">Frontend</h1>
+      <!-- <form action="javascript:;" onsubmit="render(fetchPosts, {url: `/r/${this.subreddit.value}.json`})"> -->
+      <form action="javascript:;" onsubmit="renderSubreddits(this.subreddits.value)">
+        <input type="text" id="subreddit-input" name="subreddits" placeholder="e.g. programming, selfhosted">
+        <button>Load Posts</button>
+      </form>
+      <div id="content" class="my-4 space-y-4">
+      </div>
+    </div>
+
+
+    <script>
+      const BASE_URL = 'https://api.reddit.com'
+      const NUM_POSTS = 5
+      const SUBREDDIT_SEPARATOR = '<\hr>'
+
+      // Initialize state
+      scrollPosition = 0;
+      window.addEventListener('scroll', function() {
+        scrollPosition = window.scrollY;
+      });
+
+      // Remove after done testing
+      document.addEventListener("DOMContentLoaded", function() {
+        // fetch posts and render them
+        render(fetchPosts, {sub: 'climbing'});
+      });
+
+      const renderSubreddits = (subreddits) => {
+        console.log(subreddits)
+
+        const contentDiv = document.getElementById("content");
+
+        contentDiv.innerHTML = ""
+
+        Promise.all(subreddits
+          .split(", ")
+          .map(subreddit => (
+            fetchPosts({sub: subreddit})
+          )))
+          .then(subreddits => {
+            contentDiv.innerHTML = subreddits.join(SUBREDDIT_SEPARATOR)
+          })
+
+      }
+
+      const fetchPosts = ({sub}) => {
+        return fetch(`${BASE_URL}/r/${sub}.json`, {
+          method: 'GET'
+        })
+          .then(response => response.json())
+          .then(data => data.data.children)
+          .then(posts => posts.slice(0, NUM_POSTS))
+          .then(posts => posts.map(post => post.data))
+          .then(posts => { 
+            posts = posts.map(post => {
+
+              create_date = new Date(0);
+              create_date.setUTCSeconds(post.created_utc);
+
+              return (
+                `<div class="post">
+                <a class="font-bold" href="javascript:;" onClick="render(fetchComments, {url: '${post.permalink}'})">${post.title}</a>
+                <p>${post.score} points by ${post.author} ${timeSince(create_date)} ago ${post.num_comments} comments</p>
+
+              </div>`
+              ) 
+            })
+            return `<h2 class="text-4xl font-bold my-8">${sub}</h2>` + posts.join('\n')
+          })
+      }
+
+      const fetchComments = ({url}) => {
+        return fetch(BASE_URL + url, {
+          method: 'GET',
+        })
+          .then(response => response.json())
+          .then(data => {
+            comments = data[1].data.children.map(comment => {
+              commentHtml = unescapeHtml(comment.data.body_html)
+
+              return (
+                `<div class="border border-gray-3000 rounded-md shadow-md">
+              ${commentHtml}
+               <p>${comment.data.author} on ${timeSince(new Date(comment.data.created_utc))}</p>
+              </div>
+              `
+              ) })
+
+            html = ""
+
+            listing = data[0].data.children[0].data
+
+            postType = listing.post_hint
+
+            switch(postType) {
+              case "image":
+                html += `<img src="${listing.url}" />`
+                break;
+              case "hosted:video":
+                html += `<video controls>
+                <source src="${listing.media.reddit_video.fallback_url}" type="video/mp4">
+                Your browser does not support the video tag.
+                </video>`
+                break;
+              case "link":
+                html += `<iframe src="${listing.url}"></iframe>`
+                break;
+              default:
+                break;
+            }
+
+            if (listing.selftext_html !== null) {
+              selftext = unescapeHtml(listing.selftext_html)
+              html += `<div class="border border-gray-3000 rounded-md shadow-md">
+              ${selftext}
+              </div>
+              `
+            }
+
+            html += comments.join('\n')
+            return html
+          })
+      }
+
+      const render = (renderFn, data) => {
+        window.history.pushState({
+          renderFn: renderFn.toString(),
+          data: data,
+          scrollPosition: scrollPosition
+        }, "")
+
+        renderFn(data).then(html => {
+          const contentDiv = document.getElementById("content");
+          contentDiv.innerHTML = html;
+        });
+      }
+
+      // Back button handling
+      window.onpopstate = (event) => {
+        const {renderFn, data, scrollPosition} = event.state;
+        const fn = new Function('return ' + renderFn)();
+        render(fn, data);
+        window.scrollTo(0, scrollPosition);
+      }
+
+      // Helper scripts
+      function unescapeHtml(html) {
+        var doc = new DOMParser().parseFromString(html, "text/html");
+        return doc.documentElement.textContent;
+      }
+
+      function timeSince(date) {
+        var seconds = Math.floor((new Date() - date) / 1000);
+        var interval = seconds / 31536000;
+        if (interval > 1) {
+          return Math.floor(interval) + " years";
+        }
+        interval = seconds / 2592000;
+        if (interval > 1) {
+          return Math.floor(interval) + " months";
+        }
+        interval = seconds / 86400;
+        if (interval > 1) {
+          return Math.floor(interval) + " days";
+        }
+        interval = seconds / 3600;
+        if (interval > 1) {
+          return Math.floor(interval) + " hours";
+        }
+        interval = seconds / 60;
+        if (interval > 1) {
+          return Math.floor(interval) + " minutes";
+        }
+        return Math.floor(seconds) + " seconds";
+      }
+
+    </script>
+
