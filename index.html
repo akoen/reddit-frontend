@@ -5,12 +5,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+    /* Create the caret/arrow with a unicode, and style it */
+    .caret::before {
+      content: "\25B6";
+      color: black;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    /* Rotate the caret/arrow icon when clicked on (using JavaScript) */
+    .caret-down::before {
+      transform: rotate(90deg);
+    }
+
+    .hidden {
+      display: none;
+    }
+    </style>
   </head>
   <body class="">
-    <div class="mx-auto container">
+    <div class="mx-auto px-4 max-w-4xl">
       <h1 class="text-4xl font-bold my-8">Frontend</h1>
       <!-- <form action="javascript:;" onsubmit="render(fetchPosts, {url: `/r/${this.subreddit.value}.json`})"> -->
-      <form action="javascript:;" onsubmit="renderSubreddits(this.subreddits.value)">
+      <form action="javascript:;" onsubmit="render(renderSubreddits, CONTENT_ROOT, {subreddits: this.subreddits.value})">
         <input type="text" id="subreddit-input" name="subreddits" placeholder="e.g. programming, selfhosted">
         <button>Load Posts</button>
       </form>
@@ -21,8 +39,9 @@
 
     <script>
       const BASE_URL = 'https://api.reddit.com'
-      const NUM_POSTS = 5
+      const NUM_POSTS = 10
       const SUBREDDIT_SEPARATOR = '<\hr>'
+      const CONTENT_ROOT = document.getElementById("content")
 
       // Initialize state
       scrollPosition = 0;
@@ -33,28 +52,24 @@
       // Remove after done testing
       document.addEventListener("DOMContentLoaded", function() {
         // fetch posts and render them
-        render(fetchPosts, {sub: 'climbing'});
+        render(renderSubreddits, CONTENT_ROOT, {subreddits: 'climbing, programming'});
       });
 
-      const renderSubreddits = (subreddits) => {
-        console.log(subreddits)
+      const renderSubreddits = (root, {subreddits}) => {
+        root.innerHTML = ""
 
-        const contentDiv = document.getElementById("content");
-
-        contentDiv.innerHTML = ""
-
-        Promise.all(subreddits
+        subreddits
           .split(", ")
-          .map(subreddit => (
-            fetchPosts({sub: subreddit})
-          )))
-          .then(subreddits => {
-            contentDiv.innerHTML = subreddits.join(SUBREDDIT_SEPARATOR)
-          })
+          .map(subreddit => {
+            const subDiv = document.createElement("div")
+            root.appendChild(subDiv)
+            subDiv.insertAdjacentHTML('afterend', '<hr>')
 
+            fetchPosts(subDiv, {sub: subreddit})
+          })
       }
 
-      const fetchPosts = ({sub}) => {
+      const fetchPosts = (root, {sub}) => {
         return fetch(`${BASE_URL}/r/${sub}.json`, {
           method: 'GET'
         })
@@ -62,46 +77,39 @@
           .then(data => data.data.children)
           .then(posts => posts.slice(0, NUM_POSTS))
           .then(posts => posts.map(post => post.data))
-          .then(posts => { 
-            posts = posts.map(post => {
+          .then(posts => posts.map(post => {
 
               create_date = new Date(0);
               create_date.setUTCSeconds(post.created_utc);
 
               return (
                 `<div class="post">
-                <a class="font-bold" href="javascript:;" onClick="render(fetchComments, {url: '${post.permalink}'})">${post.title}</a>
-                <p>${post.score} points by ${post.author} ${timeSince(create_date)} ago ${post.num_comments} comments</p>
-
-              </div>`
-              ) 
-            })
-            return `<h2 class="text-4xl font-bold my-8">${sub}</h2>` + posts.join('\n')
+                  <a class="font-bold" href="javascript:;" onClick="render(fetchComments, CONTENT_ROOT, {url: '${post.permalink}'})">${post.title}</a>
+                  <p>${post.score} points by ${post.author} ${timeSince(create_date)} ago ${post.num_comments} comments</p>
+                </div>`
+              )
+            }))
+          .then(posts => {
+            root.classList.add("space-y-4")
+            root.innerHTML = `<h2 class="text-4xl font-bold my-8">${sub}</h2>` + posts.join('\n')
           })
       }
 
-      const fetchComments = ({url}) => {
+      const fetchComments = (root, {url}) => {
         return fetch(BASE_URL + url, {
           method: 'GET',
         })
           .then(response => response.json())
           .then(data => {
-            comments = data[1].data.children.map(comment => {
-              commentHtml = unescapeHtml(comment.data.body_html)
+            comments = data[1].data.children
 
-              return (
-                `<div class="border border-gray-3000 rounded-md shadow-md">
-              ${commentHtml}
-               <p>${comment.data.author} on ${timeSince(new Date(comment.data.created_utc))}</p>
-              </div>
-              `
-              ) })
+            commentHtml =  buildCommentTree(comments)
 
             html = ""
-
             listing = data[0].data.children[0].data
-
             postType = listing.post_hint
+
+
 
             switch(postType) {
               case "image":
@@ -122,36 +130,76 @@
 
             if (listing.selftext_html !== null) {
               selftext = unescapeHtml(listing.selftext_html)
-              html += `<div class="border border-gray-3000 rounded-md shadow-md">
+              html += `<div class="">
               ${selftext}
               </div>
+              <hr>
               `
             }
 
-            html += comments.join('\n')
-            return html
+            html += commentHtml
+            root.innerHTML = html
+            root.querySelectorAll(".caret").forEach(caret => {
+              caret.addEventListener("click", function() {
+                this.parentElement.querySelector(".comment-body-replies").classList.toggle("hidden");
+                this.classList.toggle("caret-down");
+              });
+            })
           })
       }
 
-      const render = (renderFn, data) => {
+      const buildCommentTree = (comments) => {
+        var html = '<ul class="space-y-4 py-4 mx-4">'
+
+        comments.forEach(comment => {
+          if (comment.kind === 't1') {
+            commentHtml = unescapeHtml(comment.data.body_html)
+
+            create_date = new Date(0);
+            create_date.setUTCSeconds(comment.data.created);
+
+            html += `<li>
+              <span class="caret caret-down"></span>
+              <span class="text-gray-600">${comment.data.score} points ${comment.data.author} ${timeSince(create_date)} ago</span>
+              <div class="comment-body-replies">
+                <div class="comment-text">${commentHtml}</div>`
+
+            if (comment.data.replies !== "") {
+              html += buildCommentTree(comment.data.replies.data.children)
+            }
+
+          html += '</div></li>'
+
+          }
+          else if (comment.kind === 'more') {
+            html += '<li>More</li>';
+          }
+        })
+
+        html += '</ul>'
+        return html
+      }
+
+      const render = async (renderFn, root, data) => {
+
         window.history.pushState({
           renderFn: renderFn.toString(),
+          // root: root,
           data: data,
           scrollPosition: scrollPosition
         }, "")
 
-        renderFn(data).then(html => {
-          const contentDiv = document.getElementById("content");
-          contentDiv.innerHTML = html;
-        });
+        await renderFn(root, data)
+        window.scrollTo(0, 0);
       }
 
       // Back button handling
       window.onpopstate = (event) => {
-        const {renderFn, data, scrollPosition} = event.state;
-        const fn = new Function('return ' + renderFn)();
-        render(fn, data);
-        window.scrollTo(0, scrollPosition);
+        const state = event.state;
+        const fn = new Function('return ' + state.renderFn)();
+        // NOTE: Can't serialize DOM node
+        render(fn, CONTENT_ROOT, state.data);
+        window.scrollTo(0, state.scrollPosition);
       }
 
       // Helper scripts
@@ -185,5 +233,7 @@
         return Math.floor(seconds) + " seconds";
       }
 
-    </script>
+      </script>
 
+</body>
+</html>
