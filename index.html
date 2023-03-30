@@ -58,15 +58,15 @@
       const renderSubreddits = (root, {subreddits}) => {
         root.innerHTML = ""
 
-        subreddits
+        return Promise.all(subreddits
           .split(", ")
           .map(subreddit => {
             const subDiv = document.createElement("div")
             root.appendChild(subDiv)
             subDiv.insertAdjacentHTML('afterend', '<hr>')
 
-            fetchPosts(subDiv, {sub: subreddit})
-          })
+            return fetchPosts(subDiv, {sub: subreddit})
+          }))
       }
 
       const fetchPosts = (root, {sub}) => {
@@ -181,24 +181,22 @@
       }
 
       const render = async (renderFn, root, data) => {
+        root.innerHTML = "Loading..."
+        await renderFn(root, data)
 
         window.history.pushState({
-          renderFn: renderFn.toString(),
-          // root: root,
-          data: data,
+          html: CONTENT_ROOT.innerHTML,
           scrollPosition: scrollPosition
         }, "")
 
-        await renderFn(root, data)
         window.scrollTo(0, 0);
       }
 
       // Back button handling
       window.onpopstate = (event) => {
+        console.log(event)
         const state = event.state;
-        const fn = new Function('return ' + state.renderFn)();
-        // NOTE: Can't serialize DOM node
-        render(fn, CONTENT_ROOT, state.data);
+        CONTENT_ROOT.innerHTML = state.html;
         window.scrollTo(0, state.scrollPosition);
       }
 
