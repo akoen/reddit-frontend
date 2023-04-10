@@ -28,7 +28,12 @@
       height: 800px;
     }
 
-    #content a:after {
+
+    .comments a {
+      font-weight: 600;
+    }
+
+    .comments a:after {
       position: relative;
       content: "\FEFF°";
       margin-left: 0.10em;
@@ -37,9 +42,6 @@
       color: #933;
     }
 
-    #content a {
-      font-weight: 600;
-    }
     </style>
   </head>
   <body class="">
@@ -104,6 +106,7 @@
               return (
                 `<div class="post">
                   <a class="font-bold" href="javascript:;" onClick="changeHash('${post.permalink}')">${post.title}</a>
+                  <a class="text-gray-600" href="${post.url}">(${formatLinkURL(post.url)})</a>
                   <p>${post.score} points by ${post.author} ${timeSince(create_date)} ago ${post.num_comments} comments</p>
                 </div>`
               )
@@ -138,11 +141,7 @@
                 </video>`
                 break;
               case "link":
-                // html += `<iframe src="https://corsproxy.io/?${encodeURIComponent(listing.url)}"></iframe>`
-                // html += `<iframe sandbox="allow-scripts allow-same-origin" src="https://12ft.io/${listing.url}"></iframe>`
-                // html += `<embedded-webview src="${listing.url}"></embedded-webview>`
                 html += `<iframe class="${cssClass}" is="x-frame-bypass" src="${listing.url}"></iframe>`
-                // html += `<iframe src="https://cors-anywhere.herokuapp.com/${listing.url}"></iframe>`
                 break;
               default:
                 break;
@@ -163,7 +162,10 @@
             comments = data[1].data.children
             commentHtml =  buildCommentTree(comments)
 
+            html += '<div class="comments">'
             html += commentHtml
+            html += '</div>'
+
             CONTENT_ROOT.innerHTML = html
             CONTENT_ROOT.querySelectorAll(".caret").forEach(caret => {
               caret.addEventListener("click", function() {
@@ -292,23 +294,9 @@
         return '/' + components.slice(3).join('/')
       }
 
-      class EmbeddedWebview extends HTMLElement {
-        connectedCallback() {
-          // const url = 'https://crossorigin.me/' + this.getAttribute('src');
-          const url = 'https://cors-anywhere.herokuapp.com/' + this.getAttribute('src');
-          fetch(url, {mode: 'cors'})
-            .then(response => response.text())
-            .then(html => {
-              const shadow = this.attachShadow({ mode: 'closed' });
-              shadow.innerHTML = html;
-            });
-        }
+      const formatLinkURL = (url) => {
+        return (new URL(url).hostname).replace('www.','')
       }
-
-      window.customElements.define(
-        'embedded-webview',
-        EmbeddedWebview
-      );
 
       </script>
 
