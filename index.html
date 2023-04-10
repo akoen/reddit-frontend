@@ -2,279 +2,290 @@
 <html>
   <head>
     <title>Reddit Frontend</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' stroke='black' stroke-width='4' fill='none'/%3E%3C/svg%3E"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/gh/niutech/x-frame-bypass/x-frame-bypass.js"></script>
-    <!-- <script src="https://unpkg.com/@ungap/custom-elements-builtin"></script> -->
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/gh/niutech/x-frame-bypass/x-frame-bypass.js"
+    ></script>
+    <script src="https://unpkg.com/@ungap/custom-elements-builtin"></script>
     <style>
-    .caret::before {
-      content: "\25B6";
-      color: black;
-      display: inline-block;
-      margin-right: 6px;
-    }
+      .caret::before {
+        content: "\25B6";
+        color: black;
+        display: inline-block;
+        margin-right: 6px;
+      }
 
-    .caret-down::before {
-      transform: rotate(90deg);
-    }
+      .caret-down::before {
+        transform: rotate(90deg);
+      }
 
-    .hidden {
-      display: none;
-    }
+      .hidden {
+        display: none;
+      }
 
-    iframe {
-      width: 100%;
-      height: 800px;
-    }
+      iframe {
+        width: 100%;
+        height: 800px;
+      }
 
+      .comments a {
+        font-weight: 600;
+      }
 
-    .comments a {
-      font-weight: 600;
-    }
-
-    .comments a:after {
-      position: relative;
-      content: "\FEFF°";
-      margin-left: 0.10em;
-      font-size: 90%;
-      top: -0.10em;
-      color: #933;
-    }
-
+      .comments a:after {
+        position: relative;
+        content: "\FEFF°";
+        margin-left: 0.1em;
+        font-size: 90%;
+        top: -0.1em;
+        color: #933;
+      }
     </style>
   </head>
   <body class="">
     <div class="mx-auto px-4 max-w-4xl">
       <h1 class="text-4xl font-bold my-8">Frontend</h1>
-      <form action="javascript:;" onsubmit="changeHash('/r/' + this.subreddits.value)">
-        <input type="text" id="subreddit-input" name="subreddits" placeholder="e.g. climbing+hackernews">
+      <form
+        action="javascript:;"
+        onsubmit="changeHash('/r/' + this.subreddits.value)"
+      >
+        <input
+          type="text"
+          id="subreddit-input"
+          name="subreddits"
+          placeholder="e.g. climbing+hackernews"
+        />
         <button>Load Posts</button>
       </form>
-      <div id="content" class="my-4 space-y-4">
-      </div>
+      <div id="content" class="my-4 space-y-4"></div>
     </div>
 
-
     <script>
-      const BASE_URL = window.location.host + window.location.pathname 
-      const REDDIT_BASE_URL = 'https://api.reddit.com'
-      const NUM_POSTS = 10
-      const SUBREDDIT_SEPARATOR = '<\hr>'
-      const CONTENT_ROOT = document.getElementById("content")
-      const ENABLE_CACHING = false
-
+      const BASE_URL = window.location.host + window.location.pathname;
+      const REDDIT_BASE_URL = "https://api.reddit.com";
+      const NUM_POSTS = 10;
+      const SUBREDDIT_SEPARATOR = "<\hr>";
+      const CONTENT_ROOT = document.getElementById("content");
+      const ENABLE_CACHING = true;
 
       const setScrollPosition = () => {
-        sessionStorage['scroll' + window.location.hash] = window.scrollY;
-      }
+        sessionStorage["scroll" + window.location.hash] = window.scrollY;
+      };
 
       // Remove after done testing
-      document.addEventListener("DOMContentLoaded", function() {
+      document.addEventListener("DOMContentLoaded", function () {
         // fetch posts and render them
-        onHashChange()
+        onHashChange();
       });
 
       const renderSubreddits = (url) => {
+        CONTENT_ROOT.innerHTML = "";
 
-        CONTENT_ROOT.innerHTML = ""
+        subs = url.split("/")[2].split("+");
 
-        subs = url.split('/')[2].split('+')
+        return Promise.all(
+          subs.map((sub) => {
+            const subDiv = document.createElement("div");
+            CONTENT_ROOT.appendChild(subDiv);
+            subDiv.insertAdjacentHTML("afterend", "<hr>");
 
-        return Promise.all(subs
-          .map(sub => {
-            const subDiv = document.createElement("div")
-            CONTENT_ROOT.appendChild(subDiv)
-            subDiv.insertAdjacentHTML('afterend', '<hr>')
-
-            return fetchSub(subDiv, sub)
-          }))
-      }
+            return fetchSub(subDiv, sub);
+          })
+        );
+      };
 
       const fetchSub = (subRoot, sub) => {
         return fetch(`${REDDIT_BASE_URL}/r/${sub}.json`, {
-          method: 'GET'
+          method: "GET",
         })
-          .then(response => response.json())
-          .then(data => data.data.children)
-          .then(posts => posts.slice(0, NUM_POSTS))
-          .then(posts => posts.map(post => post.data))
-          .then(posts => posts.map(post => {
-
+          .then((response) => response.json())
+          .then((data) => data.data.children)
+          .then((posts) => posts.slice(0, NUM_POSTS))
+          .then((posts) => posts.map((post) => post.data))
+          .then((posts) =>
+            posts.map((post) => {
               create_date = new Date(0);
               create_date.setUTCSeconds(post.created_utc);
 
-              return (
-                `<div class="post">
-                  <a class="font-bold" href="javascript:;" onClick="changeHash('${post.permalink}')">${post.title}</a>
-                  <a class="text-gray-600" href="${post.url}">(${formatLinkURL(post.url)})</a>
-                  <p>${post.score} points by ${post.author} ${timeSince(create_date)} ago ${post.num_comments} comments</p>
-                </div>`
-              )
-            }))
-          .then(posts => {
-            subRoot.classList.add("space-y-4")
-            subRoot.innerHTML = `<h2 class="text-4xl font-bold my-8">${sub}</h2>` + posts.join('\n')
+              return `<div class="post">
+                  <a class="font-bold" href="javascript:;" onClick="changeHash('${
+                    post.permalink
+                  }')">${post.title}</a>
+                  <a class="text-gray-600" href="${post.url}">(${formatLinkURL(
+                post.url
+              )})</a>
+                  <p>${post.score} points by ${post.author} ${timeSince(
+                create_date
+              )} ago ${post.num_comments} comments</p>
+                </div>`;
+            })
+          )
+          .then((posts) => {
+            subRoot.classList.add("space-y-4");
+            subRoot.innerHTML =
+              `<h2 class="text-4xl font-bold my-8">${sub}</h2>` +
+              posts.join("\n");
           })
-        .catch(handleFetchError);
-
-      }
+          .catch(handleFetchError);
+      };
 
       const renderPost = (url) => {
         return fetch(REDDIT_BASE_URL + url, {
-          method: 'GET',
+          method: "GET",
         })
-          .then(response => response.json())
-          .then(data => {
+          .then((response) => response.json())
+          .then((data) => {
+            listing = data[0].data.children[0].data;
+            postType = listing.post_hint;
 
-            listing = data[0].data.children[0].data
-            postType = listing.post_hint
+            const cssClass = "border-2 inline-block";
 
-            const cssClass = "border-2 inline-block"
+            let html = "";
 
-            let html = ''
-
-            html += `<div>` +
-              `<h1 class="text-4xl font-bold">${listing.title}</h1>` + 
+            html +=
+              `<div>` +
+              `<h1 class="text-4xl font-bold">${listing.title}</h1>` +
               `<a class="" href="${listing.url}">${listing.url}</a>` +
-              `</div>`
+              `</div>`;
 
-            switch(postType) {
+            switch (postType) {
               case "image":
-                html += `<img class="${cssClass}" src="${listing.url}" />`
+                html += `<img class="${cssClass}" src="${listing.url}" />`;
                 break;
               case "hosted:video":
                 html += `<video class="${cssClass}" controls>
                 <source src="${listing.media.reddit_video.fallback_url}" type="video/mp4">
                 Your browser does not support the video tag.
-                </video>`
+                </video>`;
                 break;
               case "link":
-                html += `<iframe class="${cssClass}" is="x-frame-bypass" src="${listing.url}"></iframe>`
+                html += `<iframe class="${cssClass}" is="x-frame-bypass" src="${listing.url}"></iframe>`;
                 break;
               default:
                 break;
             }
 
-
             if (listing.selftext_html !== null) {
-              selftext = unescapeHtml(listing.selftext_html)
+              selftext = unescapeHtml(listing.selftext_html);
               html += `<div>
               ${selftext}
               </div>
               <hr>
-              `
+              `;
             }
 
+            comments = data[1].data.children;
+            commentHtml = buildCommentTree(comments);
 
+            html += '<div class="comments">';
+            html += commentHtml;
+            html += "</div>";
 
-            comments = data[1].data.children
-            commentHtml =  buildCommentTree(comments)
-
-            html += '<div class="comments">'
-            html += commentHtml
-            html += '</div>'
-
-            CONTENT_ROOT.innerHTML = html
-            CONTENT_ROOT.querySelectorAll(".caret").forEach(caret => {
-              caret.addEventListener("click", function() {
-                this.parentElement.querySelector(".comment-body-replies").classList.toggle("hidden");
+            CONTENT_ROOT.innerHTML = html;
+            CONTENT_ROOT.querySelectorAll(".caret").forEach((caret) => {
+              caret.addEventListener("click", function () {
+                this.parentElement
+                  .querySelector(".comment-body-replies")
+                  .classList.toggle("hidden");
                 this.classList.toggle("caret-down");
               });
-            })
-          })
-      }
+            });
+          });
+      };
 
-      window.onpushstate = function() {
+      window.onpushstate = function () {
         console.log("pushed");
-      }
+      };
 
       const buildCommentTree = (comments) => {
-        var html = '<ul class="space-y-4 py-4 mx-4">'
+        var html = '<ul class="space-y-4 py-4 mx-4">';
 
-        comments.forEach(comment => {
-          if (comment.kind === 't1') {
-            commentHtml = unescapeHtml(comment.data.body_html)
+        comments.forEach((comment) => {
+          if (comment.kind === "t1") {
+            commentHtml = unescapeHtml(comment.data.body_html);
 
             create_date = new Date(0);
             create_date.setUTCSeconds(comment.data.created);
 
             html += `<li>
               <span class="caret caret-down"></span>
-              <span class="text-gray-600">${comment.data.score} points ${comment.data.author} ${timeSince(create_date)} ago</span>
+              <span class="text-gray-600">${comment.data.score} points ${
+              comment.data.author
+            } ${timeSince(create_date)} ago</span>
               <div class="comment-body-replies">
-                <div class="comment-text">${commentHtml}</div>`
+                <div class="comment-text">${commentHtml}</div>`;
 
             if (comment.data.replies !== "") {
-              html += buildCommentTree(comment.data.replies.data.children)
+              html += buildCommentTree(comment.data.replies.data.children);
             }
 
-          html += '</div></li>'
-
+            html += "</div></li>";
+          } else if (comment.kind === "more") {
+            html += "<li>More</li>";
           }
-          else if (comment.kind === 'more') {
-            html += '<li>More</li>';
-          }
-        })
+        });
 
-        html += '</ul>'
-        return html
-      }
+        html += "</ul>";
+        return html;
+      };
 
       const render = async (renderFn, hashUrl) => {
-        CONTENT_ROOT.innerHTML = "Loading..."
-        await renderFn(hashUrl)
-        // const url = `${window.location.origin}${window.location.pathname}#${hashUrl}`;
-      }
-
+        CONTENT_ROOT.innerHTML = "Loading...";
+        await renderFn(hashUrl);
+      };
 
       const router = async (url) => {
-        const components = url.split('/')
+        const components = url.split("/");
 
-        if (components.length >= 3 && components[3] === 'comments') {
-          url = stripSubredditFromURL(url)
-          renderFn = renderPost
+        if (components.length >= 3 && components[3] === "comments") {
+          url = stripSubredditFromURL(url);
+          renderFn = renderPost;
+        } else if (components[1] === "r") {
+          renderFn = renderSubreddits;
         }
-        else if (components[1] === 'r') {
-          renderFn = renderSubreddits
-        }
 
-
-        window.removeEventListener("scroll", setScrollPosition); 
-        if (ENABLE_CACHING && sessionStorage['cache' + window.location.hash]) {
-          CONTENT_ROOT.innerHTML = sessionStorage['cache' + window.location.hash]
+        window.removeEventListener("scroll", setScrollPosition);
+        if (ENABLE_CACHING && sessionStorage["cache" + window.location.hash]) {
+          CONTENT_ROOT.innerHTML =
+            sessionStorage["cache" + window.location.hash];
         } else {
-          await render(renderFn, url)
+          await render(renderFn, url);
         }
-        sessionStorage['cache' + window.location.hash] = CONTENT_ROOT.innerHTML
-        window.scrollTo(0, sessionStorage['scroll' + window.location.hash] || 0);
-        window.addEventListener("scroll", setScrollPosition); 
-
-      }
+        sessionStorage["cache" + window.location.hash] = CONTENT_ROOT.innerHTML;
+        window.scrollTo(
+          0,
+          sessionStorage["scroll" + window.location.hash] || 0
+        );
+        window.addEventListener("scroll", setScrollPosition);
+      };
 
       const handleFetchError = (error) => {
-        console.log(error)
-        CONTENT_ROOT.innerHTML = 
-          `<p>Loading page failed with error: <br> ${error}<br> You likely need to disable enhanced tracking protection for this page in your browser to allow us to fetch content from Reddit. </p>` 
-
-      }
-
+        console.log(error);
+        CONTENT_ROOT.innerHTML = `<p>Loading page failed with error: <br> ${error}<br> You likely need to disable enhanced tracking protection for this page in your browser to allow us to fetch content from Reddit. </p>`;
+      };
 
       const onHashChange = async () => {
-        const url = window.location.hash.slice(1).toLowerCase() || '/'
-        await router(url)
-        console.log("hashchange", url)
-      }
+        const url = window.location.hash.slice(1).toLowerCase() || "/";
+        await router(url);
+        console.log("hashchange", url);
+      };
 
       const changeHash = async (hash) => {
         // Hash change event listener is not triggered when using pushState
-        window.history.pushState({ }, "", '#' + hash)
-        await onHashChange()
-      }
+        window.history.pushState({}, "", "#" + hash);
+        await onHashChange();
+      };
 
-      window.addEventListener('hashchange', onHashChange)
+      window.addEventListener("hashchange", onHashChange);
 
-      // Helper scripts
       function unescapeHtml(html) {
         var doc = new DOMParser().parseFromString(html, "text/html");
         return doc.documentElement.textContent;
@@ -306,15 +317,13 @@
       }
 
       const stripSubredditFromURL = (url) => {
-        const components = url.split('/')
-        return '/' + components.slice(3).join('/')
-      }
+        const components = url.split("/");
+        return "/" + components.slice(3).join("/");
+      };
 
       const formatLinkURL = (url) => {
-        return (new URL(url).hostname).replace('www.','')
-      }
-
-      </script>
-
-</body>
+        return new URL(url).hostname.replace("www.", "");
+      };
+    </script>
+  </body>
 </html>
