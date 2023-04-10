@@ -5,8 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/gh/niutech/x-frame-bypass/x-frame-bypass.js"></script>
+    <!-- <script src="https://unpkg.com/@ungap/custom-elements-builtin"></script> -->
     <style>
-    /* Create the caret/arrow with a unicode, and style it */
     .caret::before {
       content: "\25B6";
       color: black;
@@ -14,7 +15,6 @@
       margin-right: 6px;
     }
 
-    /* Rotate the caret/arrow icon when clicked on (using JavaScript) */
     .caret-down::before {
       transform: rotate(90deg);
     }
@@ -22,14 +22,31 @@
     .hidden {
       display: none;
     }
+
+    iframe {
+      width: 100%;
+      height: 800px;
+    }
+
+    #content a:after {
+      position: relative;
+      content: "\FEFF°";
+      margin-left: 0.10em;
+      font-size: 90%;
+      top: -0.10em;
+      color: #933;
+    }
+
+    #content a {
+      font-weight: 600;
+    }
     </style>
   </head>
   <body class="">
     <div class="mx-auto px-4 max-w-4xl">
       <h1 class="text-4xl font-bold my-8">Frontend</h1>
-      <!-- <form action="javascript:;" onsubmit="render(fetchPosts, {url: `/r/${this.subreddit.value}.json`})"> -->
-      <form action="javascript:;" onsubmit="render(renderSubreddits, CONTENT_ROOT, {subreddits: this.subreddits.value})">
-        <input type="text" id="subreddit-input" name="subreddits" placeholder="e.g. programming, selfhosted">
+      <form action="javascript:;" onsubmit="changeHash('/r/' + this.subreddits.value)">
+        <input type="text" id="subreddit-input" name="subreddits" placeholder="e.g. climbing+hackernews">
         <button>Load Posts</button>
       </form>
       <div id="content" class="my-4 space-y-4">
@@ -38,39 +55,41 @@
 
 
     <script>
-      const BASE_URL = 'https://api.reddit.com'
+      const BASE_URL = window.location.host + window.location.pathname 
+      const REDDIT_BASE_URL = 'https://api.reddit.com'
       const NUM_POSTS = 10
       const SUBREDDIT_SEPARATOR = '<\hr>'
       const CONTENT_ROOT = document.getElementById("content")
 
-      // Initialize state
-      scrollPosition = 0;
-      window.addEventListener('scroll', function() {
-        scrollPosition = window.scrollY;
-      });
+
+      const setScrollPosition = () => {
+        sessionStorage['scroll' + window.location.hash] = window.scrollY;
+      }
 
       // Remove after done testing
       document.addEventListener("DOMContentLoaded", function() {
         // fetch posts and render them
-        render(renderSubreddits, CONTENT_ROOT, {subreddits: 'climbing, programming'});
+        onHashChange()
       });
 
-      const renderSubreddits = (root, {subreddits}) => {
-        root.innerHTML = ""
+      const renderSubreddits = (url) => {
 
-        return Promise.all(subreddits
-          .split(", ")
-          .map(subreddit => {
+        CONTENT_ROOT.innerHTML = ""
+
+        subs = url.split('/')[2].split('+')
+
+        return Promise.all(subs
+          .map(sub => {
             const subDiv = document.createElement("div")
-            root.appendChild(subDiv)
+            CONTENT_ROOT.appendChild(subDiv)
             subDiv.insertAdjacentHTML('afterend', '<hr>')
 
-            return fetchPosts(subDiv, {sub: subreddit})
+            return fetchSub(subDiv, sub)
           }))
       }
 
-      const fetchPosts = (root, {sub}) => {
-        return fetch(`${BASE_URL}/r/${sub}.json`, {
+      const fetchSub = (subRoot, sub) => {
+        return fetch(`${REDDIT_BASE_URL}/r/${sub}.json`, {
           method: 'GET'
         })
           .then(response => response.json())
@@ -84,68 +103,79 @@
 
               return (
                 `<div class="post">
-                  <a class="font-bold" href="javascript:;" onClick="render(fetchComments, CONTENT_ROOT, {url: '${post.permalink}'})">${post.title}</a>
+                  <a class="font-bold" href="javascript:;" onClick="changeHash('${post.permalink}')">${post.title}</a>
                   <p>${post.score} points by ${post.author} ${timeSince(create_date)} ago ${post.num_comments} comments</p>
                 </div>`
               )
             }))
           .then(posts => {
-            root.classList.add("space-y-4")
-            root.innerHTML = `<h2 class="text-4xl font-bold my-8">${sub}</h2>` + posts.join('\n')
+            subRoot.classList.add("space-y-4")
+            subRoot.innerHTML = `<h2 class="text-4xl font-bold my-8">${sub}</h2>` + posts.join('\n')
           })
       }
 
-      const fetchComments = (root, {url}) => {
-        return fetch(BASE_URL + url, {
+      const renderPost = (url) => {
+        return fetch(REDDIT_BASE_URL + url, {
           method: 'GET',
         })
           .then(response => response.json())
           .then(data => {
-            comments = data[1].data.children
 
-            commentHtml =  buildCommentTree(comments)
-
-            html = ""
             listing = data[0].data.children[0].data
             postType = listing.post_hint
 
+            const cssClass = "border-2 inline-block"
 
-
+            let html = ''
             switch(postType) {
               case "image":
-                html += `<img src="${listing.url}" />`
+                html += `<img class="${cssClass}" src="${listing.url}" />`
                 break;
               case "hosted:video":
-                html += `<video controls>
+                html += `<video class="${cssClass}" controls>
                 <source src="${listing.media.reddit_video.fallback_url}" type="video/mp4">
                 Your browser does not support the video tag.
                 </video>`
                 break;
               case "link":
-                html += `<iframe src="${listing.url}"></iframe>`
+                // html += `<iframe src="https://corsproxy.io/?${encodeURIComponent(listing.url)}"></iframe>`
+                // html += `<iframe sandbox="allow-scripts allow-same-origin" src="https://12ft.io/${listing.url}"></iframe>`
+                // html += `<embedded-webview src="${listing.url}"></embedded-webview>`
+                html += `<iframe class="${cssClass}" is="x-frame-bypass" src="${listing.url}"></iframe>`
+                // html += `<iframe src="https://cors-anywhere.herokuapp.com/${listing.url}"></iframe>`
                 break;
               default:
                 break;
             }
 
+
             if (listing.selftext_html !== null) {
               selftext = unescapeHtml(listing.selftext_html)
-              html += `<div class="">
+              html += `<div>
               ${selftext}
               </div>
               <hr>
               `
             }
 
+
+
+            comments = data[1].data.children
+            commentHtml =  buildCommentTree(comments)
+
             html += commentHtml
-            root.innerHTML = html
-            root.querySelectorAll(".caret").forEach(caret => {
+            CONTENT_ROOT.innerHTML = html
+            CONTENT_ROOT.querySelectorAll(".caret").forEach(caret => {
               caret.addEventListener("click", function() {
                 this.parentElement.querySelector(".comment-body-replies").classList.toggle("hidden");
                 this.classList.toggle("caret-down");
               });
             })
           })
+      }
+
+      window.onpushstate = function() {
+        console.log("pushed");
       }
 
       const buildCommentTree = (comments) => {
@@ -180,25 +210,51 @@
         return html
       }
 
-      const render = async (renderFn, root, data) => {
-        root.innerHTML = "Loading..."
-        await renderFn(root, data)
-
-        window.history.pushState({
-          html: CONTENT_ROOT.innerHTML,
-          scrollPosition: scrollPosition
-        }, "")
-
-        window.scrollTo(0, 0);
+      const render = async (renderFn, hashUrl) => {
+        CONTENT_ROOT.innerHTML = "Loading..."
+        await renderFn(hashUrl)
+        // const url = `${window.location.origin}${window.location.pathname}#${hashUrl}`;
       }
 
-      // Back button handling
-      window.onpopstate = (event) => {
-        console.log(event)
-        const state = event.state;
-        CONTENT_ROOT.innerHTML = state.html;
-        window.scrollTo(0, state.scrollPosition);
+
+      const router = async (url) => {
+        const components = url.split('/')
+
+        if (components.length >= 3 && components[3] === 'comments') {
+          url = stripSubredditFromURL(url)
+          renderFn = renderPost
+        }
+        else if (components[1] === 'r') {
+          renderFn = renderSubreddits
+        }
+
+
+        window.removeEventListener("scroll", setScrollPosition); 
+        // if (sessionStorage['cache' + window.location.hash]) {
+        //   CONTENT_ROOT.innerHTML = sessionStorage['cache' + window.location.hash]
+        // } else {
+          await render(renderFn, url)
+        // }
+        sessionStorage['cache' + window.location.hash] = CONTENT_ROOT.innerHTML
+        window.scrollTo(0, sessionStorage['scroll' + window.location.hash] || 0);
+        window.addEventListener("scroll", setScrollPosition); 
+
       }
+
+
+      const onHashChange = async () => {
+        const url = window.location.hash.slice(1).toLowerCase() || '/'
+        await router(url)
+        console.log("hashchange", url)
+      }
+
+      const changeHash = async (hash) => {
+        // Hash change event listener is not triggered when using pushState
+        window.history.pushState({ }, "", '#' + hash)
+        await onHashChange()
+      }
+
+      window.addEventListener('hashchange', onHashChange)
 
       // Helper scripts
       function unescapeHtml(html) {
@@ -230,6 +286,29 @@
         }
         return Math.floor(seconds) + " seconds";
       }
+
+      const stripSubredditFromURL = (url) => {
+        const components = url.split('/')
+        return '/' + components.slice(3).join('/')
+      }
+
+      class EmbeddedWebview extends HTMLElement {
+        connectedCallback() {
+          // const url = 'https://crossorigin.me/' + this.getAttribute('src');
+          const url = 'https://cors-anywhere.herokuapp.com/' + this.getAttribute('src');
+          fetch(url, {mode: 'cors'})
+            .then(response => response.text())
+            .then(html => {
+              const shadow = this.attachShadow({ mode: 'closed' });
+              shadow.innerHTML = html;
+            });
+        }
+      }
+
+      window.customElements.define(
+        'embedded-webview',
+        EmbeddedWebview
+      );
 
       </script>
 
