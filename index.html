@@ -130,6 +130,12 @@
             const cssClass = "border-2 inline-block"
 
             let html = ''
+
+            html += `<div>` +
+              `<h1 class="text-4xl font-bold">${listing.title}</h1>` + 
+              `<a class="" href="${listing.url}">${listing.url}</a>` +
+              `</div>`
+
             switch(postType) {
               case "image":
                 html += `<img class="${cssClass}" src="${listing.url}" />`
