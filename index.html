@@ -62,6 +62,7 @@
       const NUM_POSTS = 10
       const SUBREDDIT_SEPARATOR = '<\hr>'
       const CONTENT_ROOT = document.getElementById("content")
+      const ENABLE_CACHING = false
 
 
       const setScrollPosition = () => {
@@ -115,6 +116,8 @@
             subRoot.classList.add("space-y-4")
             subRoot.innerHTML = `<h2 class="text-4xl font-bold my-8">${sub}</h2>` + posts.join('\n')
           })
+        .catch(handleFetchError);
+
       }
 
       const renderPost = (url) => {
@@ -238,14 +241,21 @@
 
 
         window.removeEventListener("scroll", setScrollPosition); 
-        // if (sessionStorage['cache' + window.location.hash]) {
-        //   CONTENT_ROOT.innerHTML = sessionStorage['cache' + window.location.hash]
-        // } else {
+        if (ENABLE_CACHING && sessionStorage['cache' + window.location.hash]) {
+          CONTENT_ROOT.innerHTML = sessionStorage['cache' + window.location.hash]
+        } else {
           await render(renderFn, url)
-        // }
+        }
         sessionStorage['cache' + window.location.hash] = CONTENT_ROOT.innerHTML
         window.scrollTo(0, sessionStorage['scroll' + window.location.hash] || 0);
         window.addEventListener("scroll", setScrollPosition); 
+
+      }
+
+      const handleFetchError = (error) => {
+        console.log(error)
+        CONTENT_ROOT.innerHTML = 
+          `<p>Loading page failed with error: <br> ${error}<br> You likely need to disable enhanced tracking protection for this page in your browser to allow us to fetch content from Reddit. </p>` 
 
       }
 
