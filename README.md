@@ -19,11 +19,12 @@ RF is a portable Reddit frontend distributed as a single HTML file. Try it [here
 </p>
 
 # Features
-
+- [x] Bundled as a single HTML file
 - [x] Multireddit support
 - [x] HN-style comment navigation
 - [x] Inline media preview
-- [x] Optional inline link preview with 12ft.io
+- [x] Optional link preview with 12ft.io (disabled by default)
+- [x] PWA support (rudimentary—will be improved)
 
 # Redirecting from Reddit.com
 

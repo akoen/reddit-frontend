@@ -326,7 +326,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       };
 
       const buildCommentTree = (comments) => {
-        var html = '<ul class="space-y-4 py-4 mx-4">';
+        var html = '<ul class="space-y-4 my-4 mx-4">';
 
         comments.forEach((comment) => {
           if (comment.kind === "t1") {
@@ -343,13 +343,12 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
               <div class="comment-body-replies">
                 <div class="comment-text">${commentHtml}</div>`;
 
-            if (comment.data.replies !== "") {
+            replies = comment.data.replies;
+            if (replies !== "" && replies.data.children.filter((r) => r.kind !== "more").length > 0) {
               html += buildCommentTree(comment.data.replies.data.children);
             }
 
             html += "</div></li>";
-          } else if (comment.kind === "more") {
-            html += "<li>More</li>";
           }
         });
 
