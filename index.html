@@ -18,6 +18,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       type="image/svg+xml"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' stroke='black' stroke-width='4' fill='none'/%3E%3C/svg%3E"
     />
+    <link rel="manifest" id="manifest-placeholder">
     <script src="https://cdn.tailwindcss.com"></script>
     <style type="text/tailwindcss">
       .caret::before {
@@ -442,6 +443,38 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       };
 
       window.addEventListener("hashchange", onHashChange);
+
+      // PWA
+      // https://medium.com/@alshakero/how-to-setup-your-web-app-manifest-dynamically-using-javascript-f7fbee899a61
+
+      //FIXME: Icon not DRY
+
+      // Satisfies https://web.dev/install-criteria/#criteria
+      const manifest = {
+        name: "Reddit Frontend",
+        short_name: "RF",
+        start_url: "/",
+        scope: ".",
+        background_color: "#fff",
+        description: "A Frontend for Reddit",
+        display: "standalone",
+        icons: [
+          {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192'%3E%3Ccircle cx='256' cy='256' r='230' stroke='black' stroke-width='50' fill='none'/%3E%3C/svg%3E",
+            type: "image/svg+xml",
+            sizes: "any",
+          },
+        ]
+      };
+
+
+      const stringManifest = JSON.stringify(manifest);
+      const blob = new Blob([stringManifest], { type: "application/json" });
+      const manifestURL = URL.createObjectURL(blob);
+      document.querySelector("#manifest-placeholder").setAttribute("href", manifestURL);
+
+      // NOTE: By design, it's not possible to implement a service worker with a blob URL.
+      //https://github.com/w3c/ServiceWorker/issues/578
 
 
       // HELPERS
