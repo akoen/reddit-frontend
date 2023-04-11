@@ -7,6 +7,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -->
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -109,13 +110,13 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       </div>
       <form
         action="javascript:;"
-        onsubmit="changeHash('/r/' + this.subreddits.value)"
+        onsubmit="changeHash('/r/' + this.subreddits.value.trim().split(/[\s,]+/).join('+'))"
       >
         <input
           type="text"
           id="subreddit-input"
           name="subreddits"
-          placeholder="e.g. climbing+eyebleach"
+          placeholder="e.g. climbing eyebleach"
         />
         <button>Load Posts</button>
       </form>
@@ -222,6 +223,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
                 subDiv.innerHTML =
                   `<h2 class="text-4xl font-bold my-8">${sub}</h2>` +
                     posts.join("\n");
+
+                document.getElementById("subreddit-input").value = subs.join(" ");
               })
               .catch(handleFetchError);
           })
