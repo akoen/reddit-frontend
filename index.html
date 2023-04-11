@@ -79,7 +79,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         <button class="">Load Posts</button>
       </form>
       <div id="settings" class="my-4 space-y-4">
-<form id="settingsForm">
+        <hr>
+        <form id="settingsForm">
         <label for="numPostsInput">Number of posts</label>
         <input type="number" style="width: 3rem;" id="numPostsInput" name="numPostsInput">
         <br>
@@ -91,6 +92,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         <br>
         <button type="submit">Save</button>
         </form>
+        <hr>
       </div>
       <div id="content" class="my-4 space-y-4"></div>
     </div>
@@ -192,8 +194,9 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
             html +=
               `<div>` +
-              `<h1 class="text-4xl font-bold">${listing.title}</h1>` +
-              `<a class="" href="${listing.url}">${listing.url}</a>` +
+              `<a class="text-2xl font-bold" href="${listing.url}">${listing.title}` +
+              `<p class="">(${formatLinkURL( listing.url)})</p>` + 
+              `</a>` +
               `</div>`;
 
             switch (postType) {
@@ -207,7 +210,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
                 </video>`;
                 break;
               case "link":
-                // html += `<iframe class="${cssClass}" is="x-frame-bypass" src="${listing.url}"></iframe>`;
                 if (localStorage.previewEnabled === "true") {
                   html += `<iframe class="${cssClass}" src="https://12ft.io/${listing.url}"></iframe>`;
                 }
