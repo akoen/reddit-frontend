@@ -24,7 +24,7 @@ RF is a portable Reddit frontend distributed as a single HTML file. Try it [here
 - [x] HN-style comment navigation
 - [x] Inline media preview
 - [x] Optional link preview with 12ft.io (disabled by default)
-- [x] PWA support (rudimentary—will be improved)
+- [x] PWA support
 
 # Redirecting from Reddit.com
 
@@ -35,3 +35,4 @@ RF supports handling standard Reddit URLs as location hashes. You can therefore 
 # Notes
 
 - Because RF does not provide its own backend it's limited by CORS policies. You may need to disable your browser's "enhanced tracking protection" for this site for it to work.
+- Although Add to Home Screen is supported on most browsers, the experience on mobile is subjectively better as a normal site as external links display in new tabs.

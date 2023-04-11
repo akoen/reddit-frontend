@@ -42,6 +42,10 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         height: 800px;
       }
 
+      .comments p {
+        @apply mb-2;
+      }
+
       .comments a {
         font-weight: 600;
       }
@@ -53,6 +57,10 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         font-size: 90%;
         top: -0.1em;
         color: #933;
+      }
+
+      .comments blockquote {
+        @apply bg-gray-100 border-l-4 border-gray-300 p-2;
       }
 
       input {
@@ -315,7 +323,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
             comments = data[1].data.children;
             commentHtml = buildCommentTree(comments);
 
-            html += '<div style="margin-left: -1rem">';
+            html += '<div style="margin-left: -1rem" class="comments">';
             html += commentHtml;
             html += "</div>";
 
@@ -381,6 +389,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         }
 
         // Render
+        document.getElementById("settings").classList.add("hidden");
         window.removeEventListener("scroll", setScrollPosition);
         htmlCache = sessionStorage["cache" + window.location.hash];
         if (localStorage.cacheEnabled === "true" && htmlCache) {
