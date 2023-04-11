@@ -116,7 +116,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       const REDDIT_BASE_URL = "https://api.reddit.com";
       const SUBREDDIT_SEPARATOR = "<\hr>";
       const CONTENT_ROOT = document.getElementById("content");
-      // const ENABLE_CACHING = false;
 
       const setScrollPosition = () => {
         sessionStorage["scroll" + window.location.hash] = window.scrollY;
@@ -179,7 +178,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
                   <a class="font-bold" href="javascript:;" onClick="changeHash('${
                     post.permalink
                   }')">${post.title}</a>
-                  <a class="text-gray-600" href="${post.url}">(${formatLinkURL(
+                  <a class="text-gray-600" href="${post.url}" target="_blank">(${formatLinkURL(
                 post.url
               )})</a>
                   <p>${post.score} points by ${post.author} ${timeSince(
@@ -212,7 +211,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
             html +=
               `<div>` +
-              `<a class="text-2xl font-bold" href="${listing.url}">${listing.title}` +
+              `<a class="text-2xl font-bold" href="${listing.url}" target="_blank">${listing.title}` +
               `<p class="">(${formatLinkURL( listing.url)})</p>` + 
               `</a>` +
               `</div>`;
