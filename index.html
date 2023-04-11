@@ -285,7 +285,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
                 html += `<img class="${cssClass}" src="${listing.url}" />`;
                 break;
               case "hosted:video":
-                html += `<video class="${cssClass}" controls>
+                html += `<video controls preload="metadata" class="${cssClass}">
                 <source src="${listing.media.reddit_video.fallback_url}" type="video/mp4">
                 Your browser does not support the video tag.
                 </video>`;
