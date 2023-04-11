@@ -253,14 +253,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
             html += "</div>";
 
             CONTENT_ROOT.innerHTML = html;
-            CONTENT_ROOT.querySelectorAll(".caret").forEach((caret) => {
-              caret.addEventListener("click", function () {
-                this.parentElement
-                  .querySelector(".comment-body-replies")
-                  .classList.toggle("hidden");
-                this.classList.toggle("caret-down");
-              });
-            });
+            addCommentFoldListeners();
           });
       };
 
@@ -319,6 +312,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         htmlCache = sessionStorage["cache" + window.location.hash];
         if (localStorage.cacheEnabled === "true" && htmlCache) {
           CONTENT_ROOT.innerHTML = htmlCache;
+          addCommentFoldListeners();
         } else {
           await render(renderFn, url);
         }
@@ -336,6 +330,17 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           if (key.startsWith("cache")) {
             sessionStorage.removeItem(key);
           }
+        });
+      };
+
+      const addCommentFoldListeners = () => {
+        CONTENT_ROOT.querySelectorAll(".caret").forEach((caret) => {
+          caret.addEventListener("click", function () {
+            this.parentElement
+              .querySelector(".comment-body-replies")
+              .classList.toggle("hidden");
+            this.classList.toggle("caret-down");
+          });
         });
       };
 
