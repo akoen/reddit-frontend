@@ -101,7 +101,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           type="text"
           id="subreddit-input"
           name="subreddits"
-          placeholder="e.g. climbing+hackernews"
+          placeholder="e.g. climbing+eyebleach"
         />
         <button>Load Posts</button>
       </form>
@@ -119,6 +119,26 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           <div class="form-group">
             <label for="previewInput">Link preview</label>
             <input type="checkbox" id="previewInput" name="previewInput">
+          </div>
+          <div class="form-group">
+            <label for="sortInput">Sort</label>
+            <select id="sortInput" name="sortInput">
+              <option value="hot">Hot</option>
+              <option value="new">New</option>
+              <option value="top">Top</option>
+              <option value="controversial">Controversial</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="timeInput">Time</label>
+            <select id="timeInput" name="timeInput">
+              <option value="hour">Hour</option>
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+              <option value="all">All</option>
+            </select>
           </div>
           <div class="form-group">
             <button type="submit">Save</button>
@@ -148,11 +168,15 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       document.getElementById("numPostsInput").value = localStorage.numPosts || '10'
       document.getElementById("cacheInput").checked = localStorage.cacheEnabled ? (localStorage.cacheEnabled === "true") : true;
       document.getElementById("previewInput").checked = localStorage.previewEnabled ? (localStorage.previewEnabled === "true") : false;
+      document.getElementById("sortInput").value = localStorage.sort || 'hot';
+      document.getElementById("timeInput").value = localStorage.time || 'week';
 
       const updateSettings = () => {
         localStorage.numPosts = document.getElementById("numPostsInput").value;
         localStorage.cacheEnabled = document.getElementById("cacheInput").checked;
         localStorage.previewEnabled = document.getElementById("previewInput").checked;
+        localStorage.sort = document.getElementById("sortInput").value;
+        localStorage.time = document.getElementById("timeInput").value;
       }
 
       updateSettings();
@@ -169,7 +193,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       });
 
       // RENDERING
-      const renderSubreddits = ({subs}) => {
+      const renderSubreddits = ({subs, sort, time}) => {
         CONTENT_ROOT.innerHTML = "";
 
         return Promise.all(
@@ -178,7 +202,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
             CONTENT_ROOT.appendChild(subDiv);
             subDiv.insertAdjacentHTML("afterend", "<hr>");
 
-            return fetchSub(sub)
+            return fetchSub(sub, sort, time)
               .then((posts) => {
                 subDiv.classList.add("space-y-4");
                 subDiv.innerHTML =
@@ -190,8 +214,14 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         );
       };
 
-      const fetchSub = (sub) => {
-        return fetch(`${REDDIT_BASE_URL}/r/${sub}.json`, {
+      const fetchSub = (sub, sort, time) => {
+        let url = new URL(`${REDDIT_BASE_URL}/r/${sub}/${sort}.json`);
+
+        if (sort === "top" && time) {
+          url.searchParams.append("t", time);
+        }
+
+        return fetch(url.toString(), {
           method: "GET",
         })
           .then((response) => response.json())
@@ -234,9 +264,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
             html +=
               `<div>` +
-              `<a class="text-2xl font-bold" href="${listing.url}" target="_blank">${listing.title}` +
-              `<p class="">(${formatLinkURL( listing.url)})</p>` + 
-              `</a>` +
+              `<a class="text-2xl font-bold" href="${listing.url}" target="_blank">${listing.title} <span class="">(${formatLinkURL( listing.url)})</span></a>` +
               `</div>`;
 
             switch (postType) {
@@ -312,19 +340,26 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       };
 
       const router = async (url) => {
-        const components = url.split("/");
+        url = new URL(url, REDDIT_BASE_URL);
+        const components = url.pathname.split("/");
 
-        renderData = {};
+        const renderData = {};
 
+        // Parse URL
         if (components.length >= 3 && components[3] === "comments") {
-          url = stripSubredditFromURL(url);
+          // Comments
+          url = stripSubredditFromURL(url.pathname);
           renderData.url = url;
           renderFn = renderPost;
         } else if (components[1] === "r") {
-          renderData.subs = url.split("/")[2].split("+");
+          // Subreddits
+          renderData.subs = components[2].split("+");
+          renderData.sort = components[3] || localStorage.sort;
+          renderData.time = url.searchParams["t"] || localStorage.time;
           renderFn = renderSubreddits;
         }
 
+        // Render
         window.removeEventListener("scroll", setScrollPosition);
         htmlCache = sessionStorage["cache" + window.location.hash];
         if (localStorage.cacheEnabled === "true" && htmlCache) {
