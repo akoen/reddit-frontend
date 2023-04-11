@@ -169,10 +169,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       });
 
       // RENDERING
-      const renderSubreddits = (url) => {
+      const renderSubreddits = ({subs}) => {
         CONTENT_ROOT.innerHTML = "";
-
-        subs = url.split("/")[2].split("+");
 
         return Promise.all(
           subs.map((sub) => {
@@ -180,12 +178,19 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
             CONTENT_ROOT.appendChild(subDiv);
             subDiv.insertAdjacentHTML("afterend", "<hr>");
 
-            return fetchSub(subDiv, sub);
+            return fetchSub(sub)
+              .then((posts) => {
+                subDiv.classList.add("space-y-4");
+                subDiv.innerHTML =
+                  `<h2 class="text-4xl font-bold my-8">${sub}</h2>` +
+                    posts.join("\n");
+              })
+              .catch(handleFetchError);
           })
         );
       };
 
-      const fetchSub = (subRoot, sub) => {
+      const fetchSub = (sub) => {
         return fetch(`${REDDIT_BASE_URL}/r/${sub}.json`, {
           method: "GET",
         })
@@ -211,16 +216,10 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
                 </div>`;
             })
           )
-          .then((posts) => {
-            subRoot.classList.add("space-y-4");
-            subRoot.innerHTML =
-              `<h2 class="text-4xl font-bold my-8">${sub}</h2>` +
-              posts.join("\n");
-          })
-          .catch(handleFetchError);
+          
       };
 
-      const renderPost = (url) => {
+      const renderPost = ({url}) => {
         return fetch(REDDIT_BASE_URL + url, {
           method: "GET",
         })
@@ -280,10 +279,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           });
       };
 
-      window.onpushstate = function () {
-        console.log("pushed");
-      };
-
       const buildCommentTree = (comments) => {
         var html = '<ul class="space-y-4 py-4 mx-4">';
 
@@ -316,18 +311,17 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         return html;
       };
 
-      const render = async (renderFn, hashUrl) => {
-        CONTENT_ROOT.innerHTML = "Loading...";
-        await renderFn(hashUrl);
-      };
-
       const router = async (url) => {
         const components = url.split("/");
 
+        renderData = {};
+
         if (components.length >= 3 && components[3] === "comments") {
           url = stripSubredditFromURL(url);
+          renderData.url = url;
           renderFn = renderPost;
         } else if (components[1] === "r") {
+          renderData.subs = url.split("/")[2].split("+");
           renderFn = renderSubreddits;
         }
 
@@ -337,7 +331,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           CONTENT_ROOT.innerHTML = htmlCache;
           addCommentFoldListeners();
         } else {
-          await render(renderFn, url);
+          CONTENT_ROOT.innerHTML = "Loading...";
+          await renderFn(renderData);
         }
         sessionStorage["cache" + window.location.hash] = CONTENT_ROOT.innerHTML;
         window.scrollTo(
@@ -375,7 +370,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       const onHashChange = async () => {
         const url = window.location.hash.slice(1).toLowerCase() || "/";
         await router(url);
-        console.log("hashchange", url);
       };
 
       const changeHash = async (hash) => {
