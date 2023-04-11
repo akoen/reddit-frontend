@@ -32,7 +32,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       }
 
       .hidden {
-        display: none;
+        display: none !important;
       }
 
       iframe {
@@ -57,8 +57,9 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         @apply bg-gray-50 border border-gray-300 text-gray-900 text-sm  focus:ring-blue-500 focus:border-blue-500 p-1
       }
 
-      button {
-        @apply font-bold;
+      [type=submit], button {
+        @apply bg-gray-50 font-bold border border-gray-300 text-gray-900 text-sm  focus:ring-blue-500 focus:border-blue-500 p-1;
+      
       }
 
       #settings-gear {
@@ -67,6 +68,18 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         margin-right: 8px;
         fill: currentColor;
         @apply text-gray-200;
+      }
+
+      #settings {
+        @apply flex flex-col;
+      }
+
+      .form-group {
+        @apply flex my-2 gap-2;
+      }
+
+      .form-group input {
+        @apply py-0;
       }
 
     </style>
@@ -90,21 +103,26 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           name="subreddits"
           placeholder="e.g. climbing+hackernews"
         />
-        <button class="">Load Posts</button>
+        <button>Load Posts</button>
       </form>
       <div id="settings" class="my-4 space-y-4 hidden">
         <hr>
         <form id="settingsForm">
-        <label for="numPostsInput">Number of posts</label>
-        <input type="number" style="width: 3rem;" id="numPostsInput" name="numPostsInput">
-        <br>
-        <label for="cacheInput">Post caching</label>
-        <input type="checkbox" id="cacheInput" name="cacheInput">
-        <br>
-        <label for="previewInput">Link preview</label>
-        <input type="checkbox" id="previewInput" name="previewInput">
-        <br>
-        <button type="submit">Save</button>
+          <div class="form-group">
+            <label for="numPostsInput">Number of posts</label>
+            <input type="number" style="width: 3rem;" id="numPostsInput" name="numPostsInput">
+          </div>
+          <div class="form-group">
+            <label for="cacheInput">Post caching</label>
+            <input type="checkbox" id="cacheInput" name="cacheInput">
+          </div>
+          <div class="form-group">
+            <label for="previewInput">Link preview</label>
+            <input type="checkbox" id="previewInput" name="previewInput">
+          </div>
+          <div class="form-group">
+            <button type="submit">Save</button>
+          </div>
         </form>
         <hr>
       </div>
@@ -126,16 +144,22 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       });
 
       // SETTINGS
-
+      // Note: A bit of a hack as localStorage supports only string values
       document.getElementById("numPostsInput").value = localStorage.numPosts || '10'
-      document.getElementById("cacheInput").checked = localStorage.cacheEnabled === "true";
-      document.getElementById("previewInput").checked = localStorage.previewEnabled === "true";
+      document.getElementById("cacheInput").checked = localStorage.cacheEnabled ? (localStorage.cacheEnabled === "true") : true;
+      document.getElementById("previewInput").checked = localStorage.previewEnabled ? (localStorage.previewEnabled === "true") : false;
 
-      document.getElementById("settingsForm").addEventListener("submit", (e) => {
-        e.preventDefault();
+      const updateSettings = () => {
         localStorage.numPosts = document.getElementById("numPostsInput").value;
         localStorage.cacheEnabled = document.getElementById("cacheInput").checked;
         localStorage.previewEnabled = document.getElementById("previewInput").checked;
+      }
+
+      updateSettings();
+
+      document.getElementById("settingsForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        updateSettings();
         clearCache();
         onHashChange();
       });
@@ -144,7 +168,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         document.getElementById("settings").classList.toggle("hidden");
       });
 
-
+      // RENDERING
       const renderSubreddits = (url) => {
         CONTENT_ROOT.innerHTML = "";
 
