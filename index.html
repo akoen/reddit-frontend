@@ -19,12 +19,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' stroke='black' stroke-width='4' fill='none'/%3E%3C/svg%3E"
     />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script
-      type="module"
-      src="https://cdn.jsdelivr.net/gh/niutech/x-frame-bypass/x-frame-bypass.js"
-    ></script>
-    <script src="https://unpkg.com/@ungap/custom-elements-builtin"></script>
-    <style>
+    <style type="text/tailwindcss">
       .caret::before {
         content: "\25B6";
         color: black;
@@ -57,6 +52,15 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         top: -0.1em;
         color: #933;
       }
+
+      input {
+        @apply bg-gray-50 border border-gray-300 text-gray-900 text-sm  focus:ring-blue-500 focus:border-blue-500 p-1
+      }
+
+      button {
+        @apply font-bold
+      }
+
     </style>
   </head>
   <body class="">
@@ -72,28 +76,55 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           name="subreddits"
           placeholder="e.g. climbing+hackernews"
         />
-        <button>Load Posts</button>
+        <button class="">Load Posts</button>
       </form>
+      <div id="settings" class="my-4 space-y-4">
+<form id="settingsForm">
+        <label for="numPostsInput">Number of posts</label>
+        <input type="number" style="width: 3rem;" id="numPostsInput" name="numPostsInput">
+        <br>
+        <label for="cacheInput">Post caching</label>
+        <input type="checkbox" id="cacheInput" name="cacheInput">
+        <br>
+        <label for="previewInput">Link preview</label>
+        <input type="checkbox" id="previewInput" name="previewInput">
+        <br>
+        <button type="submit">Save</button>
+        </form>
+      </div>
       <div id="content" class="my-4 space-y-4"></div>
     </div>
 
     <script>
       const BASE_URL = window.location.host + window.location.pathname;
       const REDDIT_BASE_URL = "https://api.reddit.com";
-      const NUM_POSTS = 10;
       const SUBREDDIT_SEPARATOR = "<\hr>";
       const CONTENT_ROOT = document.getElementById("content");
-      const ENABLE_CACHING = true;
+      // const ENABLE_CACHING = false;
 
       const setScrollPosition = () => {
         sessionStorage["scroll" + window.location.hash] = window.scrollY;
       };
 
-      // Remove after done testing
       document.addEventListener("DOMContentLoaded", function () {
-        // fetch posts and render them
         onHashChange();
       });
+
+      // SETTINGS
+
+      document.getElementById("numPostsInput").value = localStorage.numPosts || '10'
+      document.getElementById("cacheInput").checked = localStorage.cacheEnabled === "true";
+      document.getElementById("previewInput").checked = localStorage.previewEnabled === "true";
+
+      document.getElementById("settingsForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        localStorage.numPosts = document.getElementById("numPostsInput").value;
+        localStorage.cacheEnabled = document.getElementById("cacheInput").checked;
+        localStorage.previewEnabled = document.getElementById("previewInput").checked;
+        clearCache();
+        onHashChange();
+      });
+
 
       const renderSubreddits = (url) => {
         CONTENT_ROOT.innerHTML = "";
@@ -117,7 +148,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         })
           .then((response) => response.json())
           .then((data) => data.data.children)
-          .then((posts) => posts.slice(0, NUM_POSTS))
+          .then((posts) => posts.slice(0, parseInt(localStorage.numPosts)))
           .then((posts) => posts.map((post) => post.data))
           .then((posts) =>
             posts.map((post) => {
@@ -176,7 +207,10 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
                 </video>`;
                 break;
               case "link":
-                html += `<iframe class="${cssClass}" is="x-frame-bypass" src="${listing.url}"></iframe>`;
+                // html += `<iframe class="${cssClass}" is="x-frame-bypass" src="${listing.url}"></iframe>`;
+                if (localStorage.previewEnabled === "true") {
+                  html += `<iframe class="${cssClass}" src="https://12ft.io/${listing.url}"></iframe>`;
+                }
                 break;
               default:
                 break;
@@ -262,9 +296,9 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         }
 
         window.removeEventListener("scroll", setScrollPosition);
-        if (ENABLE_CACHING && sessionStorage["cache" + window.location.hash]) {
-          CONTENT_ROOT.innerHTML =
-            sessionStorage["cache" + window.location.hash];
+        htmlCache = sessionStorage["cache" + window.location.hash];
+        if (localStorage.cacheEnabled === "true" && htmlCache) {
+          CONTENT_ROOT.innerHTML = htmlCache;
         } else {
           await render(renderFn, url);
         }
@@ -274,6 +308,15 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           sessionStorage["scroll" + window.location.hash] || 0
         );
         window.addEventListener("scroll", setScrollPosition);
+      };
+
+
+      const clearCache = () => {
+        Object.keys(sessionStorage).forEach((key) => {
+          if (key.startsWith("cache")) {
+            sessionStorage.removeItem(key);
+          }
+        });
       };
 
       const handleFetchError = (error) => {
@@ -294,6 +337,9 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       };
 
       window.addEventListener("hashchange", onHashChange);
+
+
+      // HELPERS
 
       function unescapeHtml(html) {
         var doc = new DOMParser().parseFromString(html, "text/html");
