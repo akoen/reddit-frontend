@@ -10,7 +10,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 <!DOCTYPE html>
 <html>
   <head>
-    <title>RF</title>
+    <title>Reddit Frontend</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link
@@ -357,6 +357,10 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           renderData.sort = components[3] || localStorage.sort;
           renderData.time = url.searchParams["t"] || localStorage.time;
           renderFn = renderSubreddits;
+        } else {
+          renderFn = () => {
+            CONTENT_ROOT.innerHTML = '<p class="text-gray-200">...</p>'
+          };
         }
 
         // Render
