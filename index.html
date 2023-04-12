@@ -271,8 +271,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         })
           .then((response) => response.json())
           .then((data) => {
-            listing = data[0].data.children[0].data;
-            postType = listing.post_hint;
+            post = data[0].data.children[0].data;
 
             const cssClass = "border-2 inline-block";
 
@@ -280,30 +279,58 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
             html +=
               `<div>` +
-              `<a class="text-2xl font-bold" href="${listing.url}" target="_blank">${listing.title} <span class="">(${formatLinkURL(listing.url)})</span></a>` +
+              `<a class="text-2xl font-bold" href="${post.url}" target="_blank">${post.title} <span class="">(${formatLinkURL(post.url)})</span></a>` +
               `</div>`;
 
-            switch (postType) {
-              case "image":
-                html += `<img class="${cssClass}" src="${listing.url}" />`;
-                break;
-              case "hosted:video":
-                html += `<video controls preload="metadata" class="${cssClass}">
-                <source src="${listing.media.reddit_video.fallback_url}" type="video/mp4">
-                Your browser does not support the video tag.
-                </video>`;
-                break;
-              case "link":
-                if (localStorage.previewEnabled === "true") {
-                  html += `<iframe class="${cssClass}" src="https://12ft.io/${listing.url}"></iframe>`;
-                }
-                break;
-              default:
-                break;
+            // Media handling
+
+
+            postType = post.post_hint;
+            if (postType === "image") {
+              html += `<img class="${cssClass}" src="${post.url}" />`;
+            } else if (postType === "hosted:video") {
+              html += `<video controls preload="metadata" class="${cssClass}">
+              <source src="${post.media.reddit_video.fallback_url}" type="video/mp4">
+              Your browser does not support the video tag.
+              </video>`;
+            } else if (postType === "link") {
+              if (localStorage.previewEnabled === "true") {
+                html += `<iframe class="${cssClass}" src="https://12ft.io/${post.url}"></iframe>`;
+              }
+            } else if (postType === "rich:video") {
+              html += post.media_embed.content;
+            } else if (post.gallery_data) {
+              html += `<div class="flex flex-col justify-center">`;
+              post.gallery_data.items.forEach((item) => {
+                const img = post.media_metadata[item.media_id];
+                html += `<img width="${img.s.x}" height="${img.s.y}" src="${img.s.u}" style="object-fit: contain; max-height: 60vh;" />`;
+              });
+              html += `</div>`;
             }
 
-            if (listing.selftext_html !== null) {
-              selftext = unescapeHtml(listing.selftext_html);
+            // switch (postType) {
+            //   case "image":
+            //     html += `<img class="${cssClass}" src="${post.url}" />`;
+            //     break;
+            //   case "hosted:video":
+            //     html += `<video controls preload="metadata" class="${cssClass}">
+            //     <source src="${post.media.reddit_video.fallback_url}" type="video/mp4">
+            //     Your browser does not support the video tag.
+            //     </video>`;
+            //     break;
+            //   case "link":
+            //     if (localStorage.previewEnabled === "true") {
+            //       html += `<iframe class="${cssClass}" src="https://12ft.io/${post.url}"></iframe>`;
+            //     }
+            //     break;
+            //   default:
+            //     break;
+            // }
+
+            console.log(post.media_embed)
+
+            if (post.selftext_html !== null) {
+              selftext = unescapeHtml(post.selftext_html);
               html += `<div>
               ${selftext}
               </div>
