@@ -217,9 +217,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
       // RENDERING
       const renderSubreddits = async ({subs, sort, time}) => {
-        const html = await Promise.all(subs.map((sub) => fetchSub(sub, sort, time)))
-        CONTENT_ROOT.innerHTML = html.join(SUBREDDIT_SEPARATOR);
-        document.getElementById("subreddit-input").value = subs.join(" ");
+        const subHTML = await Promise.all(subs.map((sub) => fetchSub(sub, sort, time)))
+        return subHTML.join(SUBREDDIT_SEPARATOR);
       };
 
       const fetchSub = async (sub, sort, time) => {
@@ -246,11 +245,11 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
   <p>${post.score} points by ${post.author} ${timeSince(create_date)} ago ${post.num_comments} comments</p>
 </div>`;
         })
-        .join("</hr>");
+        .join("\n");
 
         return `
 <div class="subreddit space-y-4">
-  <h2 class="text-4xl font-bold my-8">${sub}</h2>
+  <h1 class="text-3xl font-bold mb-4 mt-8">${sub}</h1>
   ${posts}
 </div> 
 ` 
@@ -309,8 +308,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
             html += commentHtml;
             html += "</div>";
 
-            CONTENT_ROOT.innerHTML = html;
-            addCommentFoldListeners();
+            return html
           })
       };
 
@@ -345,11 +343,37 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         return html;
       };
 
+      const render = async (renderFn, renderData, sideEffects) => {
+        document.getElementById("settings").classList.add("hidden");
+        window.removeEventListener("scroll", setScrollPosition);
+        htmlCache = sessionStorage["cache" + window.location.hash];
+
+        let html;
+        if (localStorage.cacheEnabled === "true" && htmlCache) {
+          CONTENT_ROOT.innerHTML = htmlCache;
+        } else {
+          CONTENT_ROOT.innerHTML = "Loading...";
+          try {
+            html = await renderFn(renderData);
+            CONTENT_ROOT.innerHTML = html;
+            sideEffects.forEach((fn) => fn(renderData));
+            sessionStorage["cache" + window.location.hash] = CONTENT_ROOT.innerHTML;
+          } catch (error) {
+            CONTENT_ROOT.innerHTML = handleFetchError(error);
+          }
+        }
+
+        window.scrollTo( 0, sessionStorage["scroll" + window.location.hash] || 0);
+        window.addEventListener("scroll", setScrollPosition);
+      };
+
       const router = async (url) => {
         url = new URL(url, REDDIT_BASE_URL);
         const components = url.pathname.split("/");
 
+        let renderFn;
         const renderData = {};
+        const sideEffects = [];
 
         // Parse URL
         if (components.length >= 3 && components[3] === "comments") {
@@ -357,39 +381,19 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           url = stripSubredditFromURL(url.pathname);
           renderData.url = url;
           renderFn = renderPost;
+          sideEffects.push(addCommentFoldListeners);
         } else if (components[1] === "r") {
           // Subreddits
           renderData.subs = components[2].split("+");
           renderData.sort = components[3] || localStorage.sort;
           renderData.time = url.searchParams["t"] || localStorage.time;
           renderFn = renderSubreddits;
+          sideEffects.push(updateSubredditInput);
         } else {
-          renderFn = () => {
-            CONTENT_ROOT.innerHTML = '<p class="text-gray-200">...</p>'
-          };
+          renderFn = () => '<p class="text-gray-200">...</p>';
         }
 
-        // Render
-        document.getElementById("settings").classList.add("hidden");
-        window.removeEventListener("scroll", setScrollPosition);
-        htmlCache = sessionStorage["cache" + window.location.hash];
-        if (localStorage.cacheEnabled === "true" && htmlCache) {
-          CONTENT_ROOT.innerHTML = htmlCache;
-          addCommentFoldListeners();
-        } else {
-          CONTENT_ROOT.innerHTML = "Loading...";
-          try {
-            await renderFn(renderData);
-          } catch (error) {
-            handleFetchError(error);
-          }
-        }
-        sessionStorage["cache" + window.location.hash] = CONTENT_ROOT.innerHTML;
-        window.scrollTo(
-          0,
-          sessionStorage["scroll" + window.location.hash] || 0
-        );
-        window.addEventListener("scroll", setScrollPosition);
+        render(renderFn, renderData, sideEffects);
       };
 
 
@@ -401,7 +405,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         });
       };
 
-      const addCommentFoldListeners = () => {
+      // SIDE EFFECTS
+      const addCommentFoldListeners = (renderData) => {
         CONTENT_ROOT.querySelectorAll(".caret").forEach((caret) => {
           caret.addEventListener("click", function () {
             this.parentElement
@@ -412,9 +417,14 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         });
       };
 
+      const updateSubredditInput = (renderData) => {
+        document.getElementById("subreddit-input").value = renderData.subs.join(" ");
+      };
+
+      // ERROR HANDLING
       const handleFetchError = (error) => {
         console.log(error);
-        CONTENT_ROOT.innerHTML = `
+        return `
 <div class="fetch-error">
   <p> Could not load content. Pleasure ensure:</p>
   <ol>
