@@ -187,7 +187,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       });
 
       // SETTINGS
-      // Note: A bit of a hack as localStorage supports only string values
+      // NOTE: A bit of a hack as localStorage supports only string values
       document.getElementById("numPostsInput").value = localStorage.numPosts || '10'
       document.getElementById("cacheInput").checked = localStorage.cacheEnabled ? (localStorage.cacheEnabled === "true") : true;
       document.getElementById("previewInput").checked = localStorage.previewEnabled ? (localStorage.previewEnabled === "true") : false;
@@ -216,62 +216,44 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       });
 
       // RENDERING
-      const renderSubreddits = ({subs, sort, time}) => {
-        CONTENT_ROOT.innerHTML = "";
-
-        return Promise.all(
-          subs.map((sub) => {
-            const subDiv = document.createElement("div");
-            CONTENT_ROOT.appendChild(subDiv);
-            subDiv.insertAdjacentHTML("afterend", "<hr>");
-
-            return fetchSub(sub, sort, time)
-              .then((posts) => {
-                subDiv.classList.add("space-y-4");
-                subDiv.innerHTML =
-                  `<h2 class="text-4xl font-bold my-8">${sub}</h2>` +
-                    posts.join("\n");
-
-                document.getElementById("subreddit-input").value = subs.join(" ");
-              })
-              .catch(handleFetchError);
-          })
-        );
+      const renderSubreddits = async ({subs, sort, time}) => {
+        const html = await Promise.all(subs.map((sub) => fetchSub(sub, sort, time)))
+        CONTENT_ROOT.innerHTML = html.join(SUBREDDIT_SEPARATOR);
+        document.getElementById("subreddit-input").value = subs.join(" ");
       };
 
-      const fetchSub = (sub, sort, time) => {
+      const fetchSub = async (sub, sort, time) => {
         let url = new URL(`${REDDIT_BASE_URL}/r/${sub}/${sort}.json`);
 
         if (sort === "top" && time) {
           url.searchParams.append("t", time);
         }
-
-        return fetch(url.toString(), {
+        
+        data = await fetch(url.toString(), {
           method: "GET",
-        })
-          .then((response) => response.json())
-          .then((data) => data.data.children)
-          .then((posts) => posts.slice(0, parseInt(localStorage.numPosts)))
-          .then((posts) => posts.map((post) => post.data))
-          .then((posts) =>
-            posts.map((post) => {
-              create_date = new Date(0);
-              create_date.setUTCSeconds(post.created_utc);
+        }).then((response) => response.json());
 
-              return `<div class="post">
-                  <a class="font-bold" href="javascript:;" onClick="changeHash('${
-                    post.permalink
-                  }')">${post.title}</a>
-                  <a class="text-gray-600" href="${post.url}" target="_blank">(${formatLinkURL(
-                post.url
-              )})</a>
-                  <p>${post.score} points by ${post.author} ${timeSince(
-                create_date
-              )} ago ${post.num_comments} comments</p>
-                </div>`;
-            })
-          )
-          
+        const posts = data.data.children
+        .slice(0, parseInt(localStorage.numPosts))
+        .map((post) => post.data)
+        .map((post) => {
+          create_date = new Date(0);
+          create_date.setUTCSeconds(post.created_utc);
+          return `
+<div class="post">
+  <a class="font-bold" href="javascript:;" onClick="changeHash('${ post.permalink }')">${post.title}</a>
+  <a class="text-gray-600" href="${post.url}" target="_blank">(${formatLinkURL(post.url)})</a>
+  <p>${post.score} points by ${post.author} ${timeSince(create_date)} ago ${post.num_comments} comments</p>
+</div>`;
+        })
+        .join("</hr>");
+
+        return `
+<div class="subreddit space-y-4">
+  <h2 class="text-4xl font-bold my-8">${sub}</h2>
+  ${posts}
+</div> 
+` 
       };
 
       const renderPost = ({url}) => {
@@ -330,7 +312,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
             CONTENT_ROOT.innerHTML = html;
             addCommentFoldListeners();
           })
-          .catch(handleFetchError);
       };
 
       const buildCommentTree = (comments) => {
@@ -397,7 +378,11 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           addCommentFoldListeners();
         } else {
           CONTENT_ROOT.innerHTML = "Loading...";
-          await renderFn(renderData);
+          try {
+            await renderFn(renderData);
+          } catch (error) {
+            handleFetchError(error);
+          }
         }
         sessionStorage["cache" + window.location.hash] = CONTENT_ROOT.innerHTML;
         window.scrollTo(
@@ -477,7 +462,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           },
         ]
       };
-
 
       const stringManifest = JSON.stringify(manifest);
       const blob = new Blob([stringManifest], { type: "application/json" });
