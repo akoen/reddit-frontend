@@ -235,27 +235,37 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         const posts = data.data.children
         .slice(0, parseInt(localStorage.numPosts))
         .map((post) => post.data)
-        .map((post) => {
+
+        const postsHTML = posts.map((post) => {
           create_date = new Date(0);
           create_date.setUTCSeconds(post.created_utc);
           return `
 <div class="post">
-  <a class="font-bold" href="javascript:;" onClick="changeHash('${ post.permalink }')">${post.title}</a>
+  <a class="font-bold" href="javascript:;" onClick="changeHash('${post.permalink}')">${post.title}</a>
   <a class="text-gray-600" href="${post.url}" target="_blank">(${formatLinkURL(post.url)})</a>
   <p>${post.score} points by ${post.author} ${timeSince(create_date)} ago ${post.num_comments} comments</p>
 </div>`;
         })
         .join("\n");
 
+
+        posts.forEach((post) => {
+          if (localStorage.cacheEnabled === "true") {
+            renderPost({url: post.permalink}).then((html) => {
+              sessionStorage["cache#" + post.permalink] = html;
+            });
+          }
+        });
+
         return `
 <div class="subreddit space-y-4">
   <h1 class="text-3xl font-bold mb-4 mt-8">${sub}</h1>
-  ${posts}
+  ${postsHTML}
 </div> 
 ` 
       };
 
-      const renderPost = ({url}) => {
+      const renderPost = async ({url}) => {
         return fetch(REDDIT_BASE_URL + url, {
           method: "GET",
         })
@@ -270,7 +280,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
             html +=
               `<div>` +
-              `<a class="text-2xl font-bold" href="${listing.url}" target="_blank">${listing.title} <span class="">(${formatLinkURL( listing.url)})</span></a>` +
+              `<a class="text-2xl font-bold" href="${listing.url}" target="_blank">${listing.title} <span class="">(${formatLinkURL(listing.url)})</span></a>` +
               `</div>`;
 
             switch (postType) {
@@ -348,22 +358,23 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         window.removeEventListener("scroll", setScrollPosition);
         htmlCache = sessionStorage["cache" + window.location.hash];
 
+        CONTENT_ROOT.innerHTML = "Loading...";
+
         let html;
         if (localStorage.cacheEnabled === "true" && htmlCache) {
-          CONTENT_ROOT.innerHTML = htmlCache;
+          html = htmlCache;
         } else {
-          CONTENT_ROOT.innerHTML = "Loading...";
           try {
             html = await renderFn(renderData);
-            CONTENT_ROOT.innerHTML = html;
-            sideEffects.forEach((fn) => fn(renderData));
-            sessionStorage["cache" + window.location.hash] = CONTENT_ROOT.innerHTML;
+            sessionStorage["cache" + window.location.hash] = html;
           } catch (error) {
-            CONTENT_ROOT.innerHTML = handleFetchError(error);
+            html = handleFetchError(error);
           }
         }
 
+        CONTENT_ROOT.innerHTML = html
         window.scrollTo( 0, sessionStorage["scroll" + window.location.hash] || 0);
+        sideEffects.forEach((fn) => fn(renderData));
         window.addEventListener("scroll", setScrollPosition);
       };
 
