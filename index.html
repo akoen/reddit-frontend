@@ -38,11 +38,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         display: none !important;
       }
 
-      iframe {
-        width: 100%;
-        height: 800px;
-      }
-
       .comments p {
         @apply mb-2;
       }
@@ -78,12 +73,18 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         object-fit: contain;
       }
 
+      .embed-link {
+        width: 100%;
+        height: 800px;
+      }
+
       #settings-gear {
         width: 24px;
         height: 24px;
         margin-right: 8px;
         fill: currentColor;
         @apply text-gray-200;
+        cursor: pointer;
       }
 
       #settings {
@@ -258,7 +259,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         posts.forEach((post) => {
           if (localStorage.cacheEnabled === "true") {
             renderPost({url: post.permalink}).then((html) => {
-              sessionStorage["cache#" + post.permalink] = html;
+              setCacheURL(post.permalink, html);
             });
           }
         });
@@ -283,13 +284,17 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
             let html = "";
 
-            html +=
-              `<div>` +
-              `<a class="text-2xl font-bold" href="${post.url}" target="_blank">${post.title} <span class="">(${formatLinkURL(post.url)})</span></a>` +
-              `</div>`;
+            html += `<div>`
+              + `<a class="text-2xl font-bold" href="${post.url}" target="_blank">${post.title} <span class="">(${formatLinkURL(post.url)})</span></a>` 
+              + `</div>`;
 
-            // Media handling
-            html += mediaEmbed(post);
+            try {
+              html += `<div id="embed" class="flex flex-col items-center space-y-4">`
+                + mediaEmbed(post)
+                + `</div>`;
+            } catch (e) {
+                console.log("Failed to embed media", e);
+            }
 
             if (post.selftext_html !== null) {
               selftext = unescapeHtml(post.selftext_html);
@@ -330,10 +335,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         } 
 
         // Youtube, gfycat etc.
-        else if (postType === "rich:video") {
-          return '<div>'
-          + unescapeHtml(post.media_embed.content)
-          + '</div>';
+        else if (post.media_embed.content) {
+          return unescapeHtml(post.media_embed.content)
         } 
 
         // Reddit gallery
@@ -357,7 +360,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
         else if (postType === "link") {
           if (localStorage.previewEnabled === "true") {
-            return `<iframe class="embed-media" src="https://12ft.io/${post.url}"></iframe>`;
+            return `<iframe class="embed-link" src="https://12ft.io/${post.url}"></iframe>`;
           }
         } 
 
@@ -398,7 +401,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       const render = async (renderFn, renderData, sideEffects) => {
         document.getElementById("settings").classList.add("hidden");
         window.removeEventListener("scroll", setScrollPosition);
-        htmlCache = sessionStorage["cache" + window.location.hash];
+        const htmlCache = getCacheURL(window.location.hash.slice(1));
 
         CONTENT_ROOT.innerHTML = "Loading...";
 
@@ -408,7 +411,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         } else {
           try {
             html = await renderFn(renderData);
-            sessionStorage["cache" + window.location.hash] = html;
+            setCacheURL(window.location.hash.slice(1), html);
           } catch (error) {
             html = handleFetchError(error);
           }
@@ -435,6 +438,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           renderData.url = url;
           renderFn = renderPost;
           sideEffects.push(addCommentFoldListeners);
+          sideEffects.push(execEmbedScripts);
         } else if (components[1] === "r") {
           // Subreddits
           renderData.subs = components[2].split("+");
@@ -449,6 +453,17 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         render(renderFn, renderData, sideEffects);
       };
 
+      const setCacheURL = (url, html) => {
+        try {
+          sessionStorage["cache-" + url] = html;
+        } catch (error) {
+          console.log("Failed to push page to cache", error);
+        }
+      };
+
+      const getCacheURL = (url) => {
+        return sessionStorage["cache-" + url];
+      };
 
       const clearCache = () => {
         Object.keys(sessionStorage).forEach((key) => {
@@ -459,7 +474,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       };
 
       // SIDE EFFECTS
-      const addCommentFoldListeners = (renderData) => {
+      const addCommentFoldListeners = ({}) => {
         CONTENT_ROOT.querySelectorAll(".caret").forEach((caret) => {
           caret.addEventListener("click", function () {
             this.parentElement
@@ -472,6 +487,28 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
       const updateSubredditInput = (renderData) => {
         document.getElementById("subreddit-input").value = renderData.subs.join(" ");
+      };
+
+      const embedScripts = [
+        "https://platform.twitter.com/widgets.js"
+      ]
+
+      const execEmbedScripts = ({}) => {
+        const scripts = document.getElementsByTagName("script");
+
+        Array.from(scripts).forEach((script) => {
+          if (embedScripts.includes(script.src)) {
+            const newScript = document.createElement("script");
+            Array.from(script.attributes).forEach((attr) => {
+              newScript.setAttribute(attr.name, attr.value);
+            });
+
+            const scriptText = document.createTextNode(script.innerHTML);
+            newScript.appendChild(scriptText);
+
+            script.parentNode.replaceChild(newScript, script);
+          }
+        })
       };
 
       // ERROR HANDLING
