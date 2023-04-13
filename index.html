@@ -267,10 +267,11 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         })
         .join("\n");
 
-
         posts.forEach((post) => {
           if (localStorage.cacheEnabled === "true") {
-            renderPost({url: post.permalink}).then((html) => {
+            // NOTE: Must strip subreddit before fetching or some fields will be missing
+            const commentsURL = stripSubredditFromURL(post.permalink);
+            renderPost({url: commentsURL}).then((html) => {
               setCacheURL(post.permalink, html);
             });
           }
