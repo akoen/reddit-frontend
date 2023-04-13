@@ -24,6 +24,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
     <style type="text/tailwindcss">
       .caret::before {
         content: "\25B6";
+        font-family: sans-serif; 
         color: black;
         display: inline-block;
         margin-right: 6px;
@@ -70,6 +71,11 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       [type=submit], button {
         @apply bg-gray-50 font-bold border border-gray-300 text-gray-900 text-sm  focus:ring-blue-500 focus:border-blue-500 p-1;
       
+      }
+
+      .embed-media {
+        max-height: 60vh;
+        object-fit: contain;
       }
 
       #settings-gear {
@@ -283,51 +289,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
               `</div>`;
 
             // Media handling
-
-
-            postType = post.post_hint;
-            if (postType === "image") {
-              html += `<img class="${cssClass}" src="${post.url}" />`;
-            } else if (postType === "hosted:video") {
-              html += `<video controls preload="metadata" class="${cssClass}">
-              <source src="${post.media.reddit_video.fallback_url}" type="video/mp4">
-              Your browser does not support the video tag.
-              </video>`;
-            } else if (postType === "link") {
-              if (localStorage.previewEnabled === "true") {
-                html += `<iframe class="${cssClass}" src="https://12ft.io/${post.url}"></iframe>`;
-              }
-            } else if (postType === "rich:video") {
-              html += post.media_embed.content;
-            } else if (post.gallery_data) {
-              html += `<div class="flex flex-col justify-center">`;
-              post.gallery_data.items.forEach((item) => {
-                const img = post.media_metadata[item.media_id];
-                html += `<img width="${img.s.x}" height="${img.s.y}" src="${img.s.u}" style="object-fit: contain; max-height: 60vh;" />`;
-              });
-              html += `</div>`;
-            }
-
-            // switch (postType) {
-            //   case "image":
-            //     html += `<img class="${cssClass}" src="${post.url}" />`;
-            //     break;
-            //   case "hosted:video":
-            //     html += `<video controls preload="metadata" class="${cssClass}">
-            //     <source src="${post.media.reddit_video.fallback_url}" type="video/mp4">
-            //     Your browser does not support the video tag.
-            //     </video>`;
-            //     break;
-            //   case "link":
-            //     if (localStorage.previewEnabled === "true") {
-            //       html += `<iframe class="${cssClass}" src="https://12ft.io/${post.url}"></iframe>`;
-            //     }
-            //     break;
-            //   default:
-            //     break;
-            // }
-
-            console.log(post.media_embed)
+            html += mediaEmbed(post);
 
             if (post.selftext_html !== null) {
               selftext = unescapeHtml(post.selftext_html);
@@ -348,6 +310,59 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
             return html
           })
       };
+
+      const mediaEmbed = (post) => {
+        // const url = new URL(post.url);
+        const postType = post.post_hint;
+        // const host = url.hostname;
+
+
+        if (postType === "image") {
+          size = post.preview.images[0].source;
+          return `<img width="${size.width}" height="${size.height}" src="${post.url}" class="embed-media" />`;
+        } 
+
+        else if (postType === "hosted:video") {
+          return `
+<video controls autoplay class="embed-media">
+  <source src="${post.media.reddit_video.fallback_url}" type="video/mp4">
+</video>`;
+        } 
+
+        // Youtube, gfycat etc.
+        else if (postType === "rich:video") {
+          return '<div>'
+          + unescapeHtml(post.media_embed.content)
+          + '</div>';
+        } 
+
+        // Reddit gallery
+        else if (post.gallery_data) {
+          let html =  `<div class="flex flex-col justify-center space-y-4">`;
+          post.gallery_data.items.forEach((item) => {
+            const img = post.media_metadata[item.media_id];
+            html += `<img width="${img.s.x}" height="${img.s.y}" src="${img.s.u}" style="object-fit: contain; max-height: 60vh;" />`;
+          });
+          html += `</div>`;
+          return html;
+        } 
+
+        // Imgur gif
+        else if (post.domain.includes("imgur.com")) {
+          return `
+<video autoplay preload="metadata" class="embed-media">
+  <source src="${post.url.slice(0, -4) + 'mp4'}" type="video/mp4">
+</video>`;
+        }
+
+        else if (postType === "link") {
+          if (localStorage.previewEnabled === "true") {
+            return `<iframe class="embed-media" src="https://12ft.io/${post.url}"></iframe>`;
+          }
+        } 
+
+        return "";
+      }
 
       const buildCommentTree = (comments) => {
         var html = '<ul class="space-y-4 my-4 mx-4">';
