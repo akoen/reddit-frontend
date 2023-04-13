@@ -6,25 +6,34 @@
 
 RF is a portable Reddit frontend distributed as a single HTML file. Try it [here](https://rf.alexkoen.com/#/r/eyebleach+programming) or download it to your device.
 
-# Screenshots
-
-<p align="center">
-<img width="80%" src="doc/home.png">
-</p>
-
----
-
-<p align="center">
-<img width="80%" src="doc/post.png">
-</p>
-
 # Features
 - [x] Bundled as a single HTML file
 - [x] Multireddit support
 - [x] HN-style comment navigation
+- [x] "Instant" post loading
 - [x] Inline media preview
 - [x] Optional link preview with 12ft.io (disabled by default)
 - [x] PWA support
+
+# Screenshots
+
+<p align="center">
+<img width="80%" src="doc/home.png">
+<br>
+<em><a href="https://rf.alexkoen.com/#/r/climbing+linux">Multireddit support with configurable number of posts.</a></em>
+</p>
+
+<p align="center">
+<img width="80%" src="doc/gallery.png">
+<br>
+<em><a href="https://rf.alexkoen.com/#/r/climbing/comments/121ogdt/aiguille_de_blaitière_chamonix_night_and_day_oc/">Embedded multimedia preview.</a> Supports images, galleries, videos and more.</em>
+</p>
+
+<p align="center">
+<img width="80%" src="doc/link-preview.png">
+<br>
+<em><a href="https://rf.alexkoen.com/#/r/programming/comments/x8el14/how_the_sqlite_virtual_machine_works/">Inline link-preview</a> (enable in settings).</em>
+</p>
 
 # Redirecting from Reddit.com
 
