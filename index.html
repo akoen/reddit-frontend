@@ -298,14 +298,17 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
             let html = "";
 
-            html += `<div>`
-              + `<a class="text-2xl font-bold" href="${post.url}" target="_blank">${post.title} <span class="">(${formatLinkURL(post.url)})</span></a>` 
-              + `</div>`;
+            html += `<h2 class="text-2xl font-bold mb-4">`
+              + `<a href="${post.url}" target="_blank">${post.title} <span class="">(${formatLinkURL(post.url)})</span></a>` 
+              + `</h2>`;
 
             try {
-              html += `<div id="embed" class="flex flex-col items-center my-8 space-y-4">`
-                + mediaEmbed(post)
-                + `</div>`;
+              const embed = mediaEmbed(post);
+              if (embed !== "") {
+                html += `<div id="embed" class="flex flex-col items-center my-8 space-y-4">`
+                  + mediaEmbed(post)
+                  + `</div>`;
+              }
             } catch (e) {
                 console.log("Failed to embed media", e);
             }
