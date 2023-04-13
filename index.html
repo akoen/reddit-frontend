@@ -448,6 +448,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           renderFn = renderPost;
           sideEffects.push(addCommentFoldListeners);
           sideEffects.push(execEmbedScripts);
+          sideEffects.push(replaceRedditLinks);
         } else if (components[1] === "r") {
           // Subreddits
           renderData.subs = components[2].split("+");
@@ -519,6 +520,18 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           }
         })
       };
+
+      const replaceRedditLinks = ({}) => {
+        const regex =  /(https:\/\/)?(www\.)?(reddit\.com)?(\/r\/.*)/
+        Array.from(CONTENT_ROOT.getElementsByTagName("a"))
+          .forEach((a) => {
+            const href = a.getAttribute("href");
+            if (regex.test(href)) {
+              const updated = href.replace(regex, "#$4");
+              a.setAttribute("href", updated);
+            }
+          })
+      }
 
       // ERROR HANDLING
       const handleFetchError = (error) => {
@@ -621,6 +634,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       const formatLinkURL = (url) => {
         return new URL(url, "https://reddit.com").hostname.replace("www.", "");
       };
+
     </script>
   </body>
 </html>
