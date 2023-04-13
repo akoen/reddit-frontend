@@ -38,15 +38,15 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         display: none !important;
       }
 
-      .comments p {
+      .post-text p {
         @apply mb-2;
       }
 
-      .comments a {
+      .post-text a {
         font-weight: 600;
       }
 
-      .comments a:after {
+      .post-text a:after {
         position: relative;
         content: "\FEFF°";
         margin-left: 0.1em;
@@ -55,7 +55,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         color: #933;
       }
 
-      .comments blockquote {
+      .post-text blockquote {
         @apply bg-gray-100 border-l-4 border-gray-300 p-2;
       }
 
@@ -302,7 +302,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
             if (post.selftext_html !== null) {
               selftext = unescapeHtml(post.selftext_html);
-              html += `<div>
+              html += `<div class="post-text">
               ${selftext}
               </div>
               <hr>
@@ -312,7 +312,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
             comments = data[1].data.children;
             commentHtml = buildCommentTree(comments);
 
-            html += '<div style="margin-left: -1rem" class="comments">';
+            html += '<div style="margin-left: -1rem" class="post-text">';
             html += commentHtml;
             html += "</div>";
 
@@ -321,10 +321,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
       };
 
       const mediaEmbed = (post) => {
-        // const url = new URL(post.url);
         const postType = post.post_hint;
-        // const host = url.hostname;
-
 
         if (postType === "image") {
           size = post.preview.images[0].source;
@@ -387,7 +384,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
               comment.data.author
             } ${timeSince(create_date)} ago</span>
               <div class="comment-body-replies">
-                <div class="comment-text">${commentHtml}</div>`;
+                <div>${commentHtml}</div>`;
 
             replies = comment.data.replies;
             if (replies !== "" && replies.data.children.filter((r) => r.kind !== "more").length > 0) {
