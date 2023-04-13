@@ -23,15 +23,16 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
     <script src="https://cdn.tailwindcss.com"></script>
     <style type="text/tailwindcss">
       .caret::before {
-        content: "\25B6";
-        font-family: sans-serif; 
+        content: "\25B2";
         color: black;
         display: inline-block;
-        margin-right: 6px;
+        margin-right: 4px;
+        margin-left: -2px;
+        transform: rotate(90deg);
       }
 
       .caret-down::before {
-        transform: rotate(90deg);
+        transform: rotate(180deg);
       }
 
       .hidden {
