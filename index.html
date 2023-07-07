@@ -361,8 +361,12 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
         else if (post.gallery_data) {
           let html =  `<div class="flex flex-col justify-center space-y-4">`;
           post.gallery_data.items.forEach((item) => {
-            const img = post.media_metadata[item.media_id];
-            html += `<img width="${img.s.x}" height="${img.s.y}" src="${img.s.u}" style="object-fit: contain; max-height: 60vh;" />`;
+            try {
+              const img = post.media_metadata[item.media_id];
+              html += `<img width="${img.s.x}" height="${img.s.y}" src="${img.s.u}" style="object-fit: contain; max-height: 60vh;" />`;
+            } catch(e) {
+              console.error("Could not load gallery element\n", item, "\n", e)
+            }
           });
           html += `</div>`;
           return html;
