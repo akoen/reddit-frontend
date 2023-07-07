@@ -1,4 +1,4 @@
-<h3 align="center">RF: A Reddit Frontend</h3>
+<h3 align="center">RF: A (Working) Reddit Frontend</h3>
 <p align="center">
 <img width="200" src="doc/logo.png"/>
 </p>
