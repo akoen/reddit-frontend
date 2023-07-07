@@ -1,10 +1,16 @@
-# RF: A Reddit Frontend
-
+<h3 align="center">RF: A Reddit Frontend</h3>
 <p align="center">
-<img width="200" src="doc/logo.png">
+<img width="200" src="doc/logo.png"/>
 </p>
 
 RF is a portable Reddit frontend distributed as a single HTML file. Try it [here](https://rf.alexkoen.com/#/r/eyebleach+programming) or download it to your device.
+
+
+# Content
+- [Features](#features)  
+- [Screenshots](#screenshots)
+- [Redirecting from Reddit.com](#redirecting-from-redditcom)
+- [Notes](#notes)
 
 # Features
 - [x] Bundled as a single HTML file
