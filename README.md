@@ -3,9 +3,9 @@
 <img width="200" src="doc/logo.png"/>
 </p>
 
-RF is a portable Reddit frontend distributed as a single HTML file. Try it [here](https://rf.alexkoen.com/#/r/eyebleach+programming) or download it to your device.
+RF is a portable Reddit frontend distributed as a single HTML file that **still works** with Reddit's new API policy. Try it [here](https://rf.alexkoen.com/#/r/eyebleach+programming) or download it to your device.
 
-
+:warning: You may need to disable Firefox's "Enhanced Tracking Protection", which prevents RF from making CORS requests to reddit.com. See [notes](#notes).
 # Content
 - [Features](#features)  
 - [Screenshots](#screenshots)
@@ -50,4 +50,7 @@ RF supports handling standard Reddit URLs as location hashes. You can therefore 
 # Notes
 
 - Because RF does not provide its own backend it's limited by CORS policies. You may need to disable your browser's "enhanced tracking protection" for this site for it to work.
+  
+  ![image](https://github.com/akoen/reddit-frontend/assets/43913902/5383288c-0eea-4a77-ae67-b4ffc1489f89)
+
 - Although Add to Home Screen is supported on most browsers, the experience on mobile is subjectively better as a normal site as external links display in new tabs.
